@@ -1,0 +1,22 @@
+{
+  "format": "permitted-world-classroom-build-v1",
+  "repository": "guoanze550-commits/xndf-great",
+  "run_id": "39046069142",
+  "run_attempt": "1",
+  "source_commit": "86943bc4c407e05f1ee606247fdb3bfa16cf2679",
+  "run_url": "https://github.com/guoanze550-commits/xndf-great/actions/runs/39046069142",
+  "state": "running",
+  "recorded_at": "2026-10-17T15:40:24.282Z",
+  "job_result": "pending",
+  "artifact_id": null,
+  "artifact_url": null,
+  "artifact_name": null,
+  "zip_filename": null,
+  "zip_sha256": null,
+  "package_validation": "not-run",
+  "offline_runtime_validation": "not-run",
+  "build_result": "not-run",
+  "error_tail": null,
+  "physical_camera": "not-tested",
+  "classroom_mac_installation": "not-tested"
+}
