@@ -10,6 +10,7 @@ on:
       - "scripts/prepare-assets.mjs"
       - "scripts/package-classroom-mac.mjs"
       - "scripts/test-offline-electron.mjs"
+      - "scripts/record-classroom-run.mjs"
       - "docs/CLASSROOM.md"
       - "package.json"
       - "package-lock.json"
@@ -18,10 +19,32 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: classroom-mac-zip
+  cancel-in-progress: false
 jobs:
+  announce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record actual run link on the dedicated status branch
+        run: node scripts/record-classroom-run.mjs running
+
   classroom-zip:
     runs-on: macos-15-arm64
     timeout-minutes: 30
+    outputs:
+      artifact_url: ${{ steps.artifact.outputs.artifact-url }}
+      artifact_id: ${{ steps.artifact.outputs.artifact-id }}
+      zip_filename: ${{ steps.package.outputs.filename }}
+      zip_sha256: ${{ steps.package.outputs.sha256 }}
+      package_result: ${{ steps.package.outcome }}
+      offline_result: ${{ steps.offline.outcome }}
+      build_result: ${{ steps.buildapp.outcome }}
+      error_tail: ${{ steps.diagnostics.outputs.error_tail }}
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
@@ -41,25 +64,84 @@ jobs:
       - name: Build all local game and hand-tracking assets
         run: npm run build
       - name: Build classroom app without an Apple developer account
-        run: npx electron-builder --mac --arm64 --dir --publish never -c.directories.output=release-classroom -c.mac.identity=- -c.mac.hardenedRuntime=false
-      - name: Test packaged game with all Internet requests blocked
-        env:
-          PERMITTED_PACKAGED: "1"
-          PERMITTED_APP_PATH: release-classroom/mac-arm64/The Permitted World.app/Contents/MacOS/The Permitted World
-        run: npm run test:offline
-      - name: Create shareable app ZIP, Chinese guide and checksums
-        run: node scripts/package-classroom-mac.mjs
-      - uses: actions/upload-artifact@v4
+        id: buildapp
+        run: npx electron-builder --mac --arm64 --dir --publish never -c.directories.output=release-classroom -c.mac.identity=- -c.mac.hardenedRuntime=false 2>&1 | tee /tmp/classroom-build.log
+      - name: Create verified ZIP before desktop GUI validation
+        id: package
+        run: |
+          node scripts/package-classroom-mac.mjs 2>&1 | tee /tmp/classroom-package.log
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const report = JSON.parse(fs.readFileSync('release-classroom/classroom-verification.json', 'utf8'));
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `filename=${report.filename}\nsha256=${report.sha256}\n`);
+          JS
+      - name: Upload downloadable classroom ZIP
+        id: artifact
+        uses: actions/upload-artifact@v4
         with:
           name: The-Permitted-World-Classroom-Mac-Apple-Silicon-arm64
+          compression-level: 0
+          retention-days: 30
           path: |
             release-classroom/*classroom*arm64.zip
             release-classroom/classroom-verification.json
             release-classroom/SHA256SUMS.txt
-            test-results/classroom-offline.json
           if-no-files-found: error
+      - name: Test packaged game with all Internet requests blocked
+        id: offline
+        env:
+          PERMITTED_PACKAGED: "1"
+          PERMITTED_APP_PATH: release-classroom/mac-arm64/The Permitted World.app/Contents/MacOS/The Permitted World
+        run: npm run test:offline 2>&1 | tee /tmp/classroom-offline.log
+      - name: Upload separate runtime validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: classroom-runtime-validation
+          path: test-results/classroom-offline*
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: classroom-build-diagnostics
           path: test-results/
+      - name: Collect non-secret build error summary
+        if: always()
+        id: diagnostics
+        env:
+          BUILD_RESULT: ${{ steps.buildapp.outcome }}
+          PACKAGE_RESULT: ${{ steps.package.outcome }}
+          OFFLINE_RESULT: ${{ steps.offline.outcome }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const logs = ['build', 'package', 'offline'].flatMap(name => {
+            if (process.env[`${name.toUpperCase()}_RESULT`] !== 'failure') return [];
+            const file = `/tmp/classroom-${name}.log`;
+            return fs.existsSync(file) ? [`${name}:\n${fs.readFileSync(file, 'utf8').slice(-10000)}`] : [];
+          });
+          const summary = logs.join('\n').replace(/gh[pousr]_[A-Za-z0-9]+|github_pat_[A-Za-z0-9_]+/g, '[redacted]').replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/g, '$1[redacted]@');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `error_tail<<CLASSROOM_ERROR_END\n${summary}\nCLASSROOM_ERROR_END\n`);
+          JS
+
+  record-result:
+    if: always()
+    needs: [announce, classroom-zip]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record actual artifact and validation results
+        env:
+          CLASSROOM_JOB_RESULT: ${{ needs['classroom-zip'].result }}
+          CLASSROOM_ARTIFACT_URL: ${{ needs['classroom-zip'].outputs.artifact_url }}
+          CLASSROOM_ARTIFACT_ID: ${{ needs['classroom-zip'].outputs.artifact_id }}
+          CLASSROOM_ZIP_FILENAME: ${{ needs['classroom-zip'].outputs.zip_filename }}
+          CLASSROOM_ZIP_SHA256: ${{ needs['classroom-zip'].outputs.zip_sha256 }}
+          CLASSROOM_PACKAGE_RESULT: ${{ needs['classroom-zip'].outputs.package_result }}
+          CLASSROOM_OFFLINE_RESULT: ${{ needs['classroom-zip'].outputs.offline_result }}
+          CLASSROOM_BUILD_RESULT: ${{ needs['classroom-zip'].outputs.build_result }}
+          CLASSROOM_ERROR_TAIL: ${{ needs['classroom-zip'].outputs.error_tail }}
+        run: node scripts/record-classroom-run.mjs completed
