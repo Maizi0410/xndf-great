@@ -12,3 +12,5 @@
 运行编号、实际 Artifact ID / 链接、源提交与测试结果会自动写入仓库独立的 `classroom-build-status` 分支 `latest.json`。该分支只记录非秘密交付状态，不修改 `main` 游戏文件；用于云端 GitHub API 被拦截时，仍可通过 Git 读取实际构建结果。
 
 文件名含 `UNVERIFIED-crossbuild` 的旧 ZIP 是 Linux 交叉构建备份；虽然已验证可以解压、含 arm64 `.app` 和完整离线资源，仍不代表真实 Mac 安装或摄像头已经通过。
+
+构建使用 GitHub 当前官方 ARM64 runner 标签 `macos-15`。更新的运行会替代旧运行，状态分支不会被较旧运行的迟到结果覆盖。

@@ -21,7 +21,7 @@ permissions:
   contents: read
 concurrency:
   group: classroom-mac-zip
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   announce:
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
         run: node scripts/record-classroom-run.mjs running
 
   classroom-zip:
-    runs-on: macos-15-arm64
+    runs-on: macos-15
     timeout-minutes: 30
     outputs:
       artifact_url: ${{ steps.artifact.outputs.artifact-url }}

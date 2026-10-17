@@ -88,7 +88,7 @@ npm run test:desktop
 
 1. 在 Codex 检查变更和测试结果，提交修改并推送到 GitHub 的 `main` 分支。初始远程仓库为空时，必须先产生首个提交及 `main` 分支，GitHub 才能发现工作流。
 2. 打开 GitHub 仓库 → **Actions → Build Apple Silicon Mac → Run workflow**。
-3. 首次选择 `signed: false`。工作流使用 `macos-15-arm64`、Node 24、`npm ci`，运行类型检查、规则测试、生产构建、浏览器验收，再生成 DMG。
+3. 首次选择 `signed: false`。工作流使用 `macos-15`（ARM64）、Node 24、`npm ci`，运行类型检查、规则测试、生产构建、浏览器验收，再生成 DMG。
 4. 构建会检查 Mach-O **仅 arm64**、ASAR 中 HTML/JS/模型/WASM/preload、模型 SHA-256、摄像头用途声明，并用 `hdiutil verify` 检查 DMG 完整性。还会在该 Mac runner 上启动打包后的 Electron 应用做冒烟检查。
 5. 成功后在该运行的 **Artifacts** 下载 `The-Permitted-World-Apple-Silicon-arm64-adhoc-internal`，解压后获取：
 

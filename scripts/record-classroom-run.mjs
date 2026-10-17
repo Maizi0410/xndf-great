@@ -66,6 +66,14 @@ for (let attempt = 0; attempt < 3; attempt++) {
       previous.repository !== repository
     )
       throw new Error("Unrecognized status branch; preserving it");
+    if (
+      BigInt(previous.run_id) > BigInt(runId) ||
+      (previous.run_id === runId &&
+        Number(previous.run_attempt) > Number(receipt.run_attempt))
+    ) {
+      console.log("Preserving the newer classroom run receipt.");
+      break;
+    }
   }
   const blob = git(["hash-object", "-w", "--stdin"], {
     input: JSON.stringify(receipt, null, 2) + "\n",
