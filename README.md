@@ -6,6 +6,14 @@
 
 这是可以实际运行的 **0.1.0 内部测试版本**，不是正式签名发行版。当前交付包含完整鼠标玩法、真实本机手势输入、离线模型与 WASM、程序化场景及 Apple Silicon DMG 构建工作流。图形与人物是原创程序化资产，仍有进一步提升电影质感和角色细节的空间，不能等同于最终商业美术品质。
 
+## 在 Safari / Chrome 直接体验网页版
+
+无需等待 DMG。网页目标地址为 **https://guoanze550-commits.github.io/xndf-great/**，需要先启用 Pages 并成功部署；尚未核验公网可访问性时不能视为已上线。
+
+已新增独立的 [Deploy web game to GitHub Pages](https://github.com/guoanze550-commits/xndf-great/actions/workflows/deploy-pages.yml) 工作流，推送 `main` 后自动构建、验证和部署。首次请在 [Settings → Pages](https://github.com/guoanze550-commits/xndf-great/settings/pages) 将 Source 选择为 **GitHub Actions**；若首次运行因此失败，再手动 Run workflow。
+
+网页使用独立 `dist-web/` 与 `/xndf-great/` 子路径，桌面代码和 DMG 工作流保持不变。鼠标无需摄像头；手势只在 HTTPS 页面上按需申请权限，使用同源本地模型和 WASM。Mac Safari/Chrome 与真实摄像头尚须实机验收。[完整部署、验证与排错说明](docs/WEB.md)。
+
 ## 开始开发
 
 需要 Node.js 24（仓库使用精确依赖版本及 package-lock.json）。在此仓库目录运行：

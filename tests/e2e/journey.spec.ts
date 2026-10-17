@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { createHash } from "node:crypto";
 test("mouse completes the entire offline world, even after camera denial", async ({
   page,
   context,
@@ -11,13 +12,18 @@ test("mouse completes the entire offline world, even after camera denial", async
       errors.push(m.text());
   });
   await context.route("**/*", (route) => {
-    if (!route.request().url().startsWith("http://127.0.0.1:4173")) {
+    if (
+      !route
+        .request()
+        .url()
+        .startsWith(test.info().project.use.baseURL as string)
+    ) {
       external.push(route.request().url());
       return route.abort();
     }
     return route.continue();
   });
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.locator("#fatal")).toBeHidden();
   await page.screenshot({ path: "test-results/01-title.png" });
   await page.getByRole("button", { name: "进入界限" }).click();
@@ -71,15 +77,29 @@ test("mouse completes the entire offline world, even after camera denial", async
   expect(errors).toEqual([]);
   expect(external).toEqual([]);
 });
-test("packaged vision files are local and complete", async ({ request }) => {
-  for (const file of [
-    "hand_landmarker.task",
-    "wasm/vision_wasm_internal.wasm",
-    "wasm/vision_wasm_internal.js",
-  ]) {
-    const r = await request.get("/vision/" + file);
-    expect(r.status()).toBe(200);
-    expect((await r.body()).length).toBeGreaterThan(10000);
+test("packaged vision files stay under the deployment path with correct bytes and MIME types", async ({
+  request,
+}) => {
+  const expected =
+    "94cae88157602cec45e48fe0c572b418a9641a9aae977ffd71dddbce167201a1";
+  const model = await request.get("vision/hand_landmarker.task");
+  expect(model.status()).toBe(200);
+  expect(
+    createHash("sha256")
+      .update(await model.body())
+      .digest("hex"),
+  ).toBe(expected);
+  for (const variant of ["internal", "module_internal", "nosimd_internal"]) {
+    for (const ext of ["js", "wasm"]) {
+      const response = await request.get(
+        `vision/wasm/vision_wasm_${variant}.${ext}`,
+      );
+      expect(response.status()).toBe(200);
+      expect((await response.body()).length).toBeGreaterThan(10000);
+      expect(response.headers()["content-type"]).toContain(
+        ext === "wasm" ? "application/wasm" : "javascript",
+      );
+    }
   }
 });
 test("real local MediaPipe initializes and infers on a synthetic camera stream", async ({
@@ -87,7 +107,7 @@ test("real local MediaPipe initializes and infers on a synthetic camera stream",
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await page.locator("#begin").click();
   await page.evaluate(() => {
     const c = document.createElement("canvas");
