@@ -10,14 +10,14 @@
 | 网页资源 | **通过**：模型 SHA-256、全部 6 个 JS/WASM 文件的字节和 MIME；无外部资源请求的鼠标流程 |
 | 网页实际部署 / 公网访问 | **未验证**：当前云端代理拒绝连接 GitHub API 与 Pages 域名，未取得站点实际 HTTP 响应，无法读取部署状态 |
 | Mac / Windows 真实浏览器 | **未验证**：当前只在 Linux Chromium 执行；建议课前用课堂电脑检查 Safari / Chrome / Edge |
-| 本地版基础启动 | **通过（Linux Electron）**：实际 Electron 加载安全本地协议、生产资源和模型；未在 Mac 运行 |
-| 本地版屏蔽网络后通关 | **通过（Linux Electron）**：重载页面前屏蔽全部 HTTP、HTTPS、WebSocket；鼠标完整 A→B→C、结局和本地模型推理，外部请求为 0 |
+| 本地版基础启动 | **通过（Linux Electron / macOS ARM64 CI）**：Mac 成功运行 39046168262 使用实际打包 `.app`，加载安全本地协议、生产资源和模型；课堂实机仍待验证 |
+| 本地版屏蔽网络后通关 | **通过（Linux Electron / macOS ARM64 CI 打包应用）**：重载页面前屏蔽全部 HTTP、HTTPS、WebSocket；鼠标完整 A→B→C、结局和本地模型合成视频推理；课堂电脑物理断网仍待实测 |
 | MediaPipe 合成视频 | **通过**：网页与 Electron 中实际加载任务包、WASM 并执行推理，正常报告没有手 |
 | 真人摄像头 / 系统权限弹窗 | **未验证**：自动测试使用合成帧和模拟权限响应，不代表真实设备 |
 | ARM64 `.app` 资源 | **通过静态检查**：本轮独立交叉构建到 `release-classroom/mac-arm64/`；arm64 Mach-O、ASAR HTML/JS/CSS、模型 SHA-256、6 个 JS/WASM 文件和摄像头声明均在 |
-| 本地 ZIP 实际生成 | **已生成交叉构建备份**：文件名含 `UNVERIFIED-crossbuild`；ZIP CRC、ASAR 字节、执行位、14 个框架符号链接、中文说明及许可检查通过 |
-| 原生 Mac 课堂 ZIP / Actions | **工作流已配置，实际执行未验证**：新增自动 / 手动 `Build classroom Mac ZIP`，在 ARM64 Mac 上构建、验证 ad-hoc 签名、屏蔽网络测试通关，然后用 ditto 打包并上传 Artifact |
-| Mac 安装 / 启动 / 物理断网 | **未验证**：包括首次安全提示、另一台 Mac 解压和运行，需课前在演示机完成 |
+| 本地 ZIP 实际生成 | **原生 Mac ZIP 已生成并上传 Artifact 12106205558**；旧 `UNVERIFIED-crossbuild` 备份也仍保留，实际解压、ASAR 字节、执行位、14 个框架符号链接及资源检查通过 |
+| 原生 Mac 课堂 ZIP / Actions | **已通过**：[运行 39046168262](https://github.com/guoanze550-commits/xndf-great/actions/runs/39046168262)，源提交 `324a79f`。原生构建、签名与 ZIP 校验、Artifact 上传及打包应用离线自动通关均成功 |
+| Mac 安装 / 启动 / 物理断网 | **CI 打包应用启动已通过；课堂设备未验证**：首次安全提示、另一台 Mac 下载解压及物理断网运行仍需课前实测 |
 | Developer ID / 公证 / App Store | **非本次课堂目标**；原可选发行配置保留，不需要提供相关账户或密钥 |
 
 ## 本轮执行命令
@@ -48,3 +48,5 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e
 | Windows / 浏览器：待填 | 待填 | 未测试 | 未测试 | 不提供 Windows 本地版 | 不适用 | 未测试 |
 
 课堂步骤及入口见 [CLASSROOM.md](CLASSROOM.md)。网页若尚未启用，请在仓库 Settings → Pages 选择 GitHub Actions，并运行现有网页部署工作流；当前记录不声称该操作已经完成。
+
+更新：2026-10-17，已通过独立 Git 状态分支读取真实 Actions 结果与 Artifact ID；即使云端 API 仍被拦截，原生 Mac 构建结果已确认。精确下载入口及 SHA-256 见 [CLASSROOM-DOWNLOAD.md](CLASSROOM-DOWNLOAD.md)。

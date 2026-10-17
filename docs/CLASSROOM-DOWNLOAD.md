@@ -2,6 +2,18 @@
 
 本地备份 ZIP 仍保存在云端，但课堂交付优先使用 GitHub Actions 的 Artifact，不依赖聊天附件预览。
 
+## 已成功生成的课堂包（2026-10-17）
+
+- [成功的 Actions 运行 39046168262](https://github.com/guoanze550-commits/xndf-great/actions/runs/39046168262)
+- [直接进入 Artifact 下载](https://github.com/guoanze550-commits/xndf-great/actions/runs/39046168262/artifacts/12106205558)
+- Artifact：`The-Permitted-World-Classroom-Mac-Apple-Silicon-arm64`
+- 内层 ZIP：`The-Permitted-World-0.1.0-classroom-macOS-Apple-Silicon-arm64.zip`
+- 内层 ZIP SHA-256：`8a0d689f37b96848d5381812c6e56493e82f806b3965719256c90aca6362ecf5`
+
+该次运行在 `macos-15` ARM64 runner 上通过原生构建、应用与本地模型/WASM 检查、ad-hoc 签名验证、ZIP 解压校验，以及打包应用屏蔽网络后的鼠标 A→B→C 和结局测试。本地模型使用合成视频完成实际推理；真实摄像头、课堂 Mac 首次安装与系统安全提示仍未实测。
+
+请登录 GitHub 下载；Artifact 保留期为 30 天。下载后的外层 Artifact ZIP 还需解压一次，才会看到上述内层课堂 ZIP。
+
 1. 登录 GitHub，打开 [Build classroom Mac ZIP](https://github.com/guoanze550-commits/xndf-great/actions/workflows/build-classroom-mac.yml)，选择对应提交的运行。
 2. 找到运行页下方 **Artifacts → The-Permitted-World-Classroom-Mac-Apple-Silicon-arm64**，点击下载。
 3. 解开 GitHub 的外层 ZIP，再解开里面以 `classroom-macOS-Apple-Silicon-arm64.zip` 结尾的包；其中包含 `.app`、中文说明及资源许可。
