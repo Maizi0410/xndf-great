@@ -29,9 +29,9 @@
 - 页面 CSP 保留，只允许同源资源与必要的 WASM 执行。
 - 工作流仅上传 `dist-web/`，不发布源代码、node_modules、Electron 二进制或构建缓存。
 
-## 在 Mac 浏览器体验
+## 在 Mac / Windows 浏览器体验
 
-用最新 Safari 或 Chrome **直接打开 HTTPS 入口**，点击「进入界限」即可使用鼠标；浏览器需要支持 WebGL 2 和 WebAssembly。不要通过 `file://` 直接打开构建后的 HTML。
+Mac 使用最新 Safari / Chrome，Windows 使用最新 Chrome / Edge，**直接打开 HTTPS 入口**，点击「进入界限」即可使用鼠标；浏览器需要支持 WebGL 2 和 WebAssembly。不要通过 `file://` 直接打开构建后的 HTML。
 
 鼠标拖到 −60°，等 I—II 冰路形成后确认；到 II 后再拖到 +60°，等待旧路消失、新路形成，确认后到 III。人物通行时旋转锁定。按钮与流程和桌面版一致。
 

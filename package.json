@@ -22,7 +22,9 @@
     "test:desktop": "node scripts/smoke-electron.mjs",
     "prebuild:web": "npm run assets",
     "build:web": "vite build --outDir dist-web --base=/xndf-great/",
-    "preview:web": "vite preview --outDir dist-web --base=/xndf-great/ --host 0.0.0.0"
+    "preview:web": "vite preview --outDir dist-web --base=/xndf-great/ --host 0.0.0.0",
+    "test:offline": "node scripts/test-offline-electron.mjs",
+    "classroom:mac": "npm run typecheck && npm test && npm run build && electron-builder --mac --arm64 --dir --publish never -c.directories.output=release-classroom -c.mac.identity=- -c.mac.hardenedRuntime=false && node scripts/package-classroom-mac.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.1.1",

@@ -9,3 +9,5 @@ playwright-report/
 public/vision/wasm/
 
 dist-web/
+
+release-classroom/

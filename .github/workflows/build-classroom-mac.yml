@@ -1,0 +1,65 @@
+name: Build classroom Mac ZIP
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "electron/**"
+      - "build/**"
+      - "scripts/prepare-assets.mjs"
+      - "scripts/package-classroom-mac.mjs"
+      - "scripts/test-offline-electron.mjs"
+      - "docs/CLASSROOM.md"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - ".github/workflows/build-classroom-mac.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  classroom-zip:
+    runs-on: macos-15-arm64
+    timeout-minutes: 30
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install locked dependencies and Electron
+        run: |
+          npm ci --no-audit --no-fund
+          npx --no-install install-electron
+      - name: Check types and existing game rules
+        run: |
+          npm run typecheck
+          npm test
+      - name: Build all local game and hand-tracking assets
+        run: npm run build
+      - name: Build classroom app without an Apple developer account
+        run: npx electron-builder --mac --arm64 --dir --publish never -c.directories.output=release-classroom -c.mac.identity=- -c.mac.hardenedRuntime=false
+      - name: Test packaged game with all Internet requests blocked
+        env:
+          PERMITTED_PACKAGED: "1"
+          PERMITTED_APP_PATH: release-classroom/mac-arm64/The Permitted World.app/Contents/MacOS/The Permitted World
+        run: npm run test:offline
+      - name: Create shareable app ZIP, Chinese guide and checksums
+        run: node scripts/package-classroom-mac.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: The-Permitted-World-Classroom-Mac-Apple-Silicon-arm64
+          path: |
+            release-classroom/*classroom*arm64.zip
+            release-classroom/classroom-verification.json
+            release-classroom/SHA256SUMS.txt
+            test-results/classroom-offline.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: classroom-build-diagnostics
+          path: test-results/
