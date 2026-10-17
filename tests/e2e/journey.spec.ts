@@ -42,32 +42,43 @@ test("mouse completes the entire offline world, even after camera denial", async
     "摄像头权限未获准",
   );
   await page.locator("#camera-stop").click();
-  // Real pointer gestures on the 3D view. No injected game-state transitions.
-  await page.mouse.move(820, 650);
-  await page.mouse.down();
-  await page.mouse.move(620, 650, { steps: 8 });
-  await page.mouse.up();
-  await expect(page.locator("#confirm")).toBeEnabled({ timeout: 20000 });
-  await page.screenshot({ path: "test-results/02-first-permission.png" });
-  await page.locator("#confirm").click();
-  await expect(page.locator("#rotation")).toBeDisabled();
-  await page.mouse.move(750, 600);
-  await page.mouse.down();
-  await page.mouse.move(1150, 600, { steps: 5 });
-  await page.mouse.up();
-  await expect(page.locator("#app")).toHaveAttribute("data-platform", "B", {
-    timeout: 30000,
-  });
-  await expect(page.locator("#app")).toHaveAttribute("data-route", "AB");
-  await page.mouse.move(700, 650);
-  await page.mouse.down();
-  await page.mouse.move(1100, 650, { steps: 10 });
-  await page.mouse.up();
-  await expect(page.locator("#app")).toHaveAttribute("data-route", "BC", {
-    timeout: 20000,
-  });
-  await page.screenshot({ path: "test-results/03-rewritten-boundary.png" });
-  await page.locator("#confirm").click();
+  // Actual canvas drags; no injected rules, travel state, clocks or topology.
+  const route = [
+    { from:"A", to:"L", mechanism:"axis", angle:-56, edge:"AL" },
+    { from:"L", to:"B", mechanism:"stairs", angle:34, edge:"LB" },
+    { from:"B", to:"U", mechanism:"axis", angle:52, edge:"BU" },
+    { from:"U", to:"B2", mechanism:"crown", angle:-38, edge:"UB2" },
+    { from:"B2", to:"C", mechanism:"axis", angle:-22, edge:"B2C" },
+  ];
+  async function dragTo(angle:number,mechanism:string) {
+    const config=JSON.parse((await page.locator("#app").getAttribute("data-configuration"))!);
+    const delta=(angle-config[mechanism])/.3;
+    await page.mouse.move(850,620);await page.mouse.down();
+    await page.mouse.move(850+delta,620,{steps:8});await page.mouse.up();
+  }
+  for(const [i,step] of route.entries()) {
+    await expect(page.locator("#app")).toHaveAttribute("data-mechanism",step.mechanism);
+    const falseAngle=step.from==="L"?-34:step.from==="B"?18:null;
+    if(falseAngle!==null) {
+      await dragTo(falseAngle,step.mechanism);
+      await expect(page.locator("#confirm")).toBeDisabled();
+      await expect.poll(async()=>{
+        const a=JSON.parse((await page.locator("#app").getAttribute("data-alignment"))!);
+        return a.find((x:{id:string})=>x.id===(step.from==="L"?"fold":"echo"))?.reason;
+      }).toBe(step.from==="L"?"direction":"unreachable");
+      await page.locator("#world").focus();await page.keyboard.press("Enter");
+      await expect(page.locator("#app")).toHaveAttribute("data-platform",step.from);
+    }
+    await dragTo(step.angle,step.mechanism);
+    await expect(page.locator("#confirm")).toBeEnabled({timeout:25000});
+    await expect(page.locator("#app")).toHaveAttribute("data-route",step.edge);
+    await page.screenshot({path:`test-results/v2-${i+1}-${step.edge}.png`});
+    await page.locator("#confirm").click();
+    await expect(page.locator("#rotation")).toBeDisabled();
+    await page.mouse.move(800,600);await page.mouse.down();await page.mouse.move(1100,600);await page.mouse.up();
+    await expect(page.locator("#app")).toHaveAttribute("data-platform",step.to,{timeout:40000});
+    await expect(page.locator("#app")).toHaveAttribute("data-crossings",String(i+1));
+  }
   await expect(page.locator("#ending")).toBeVisible({ timeout: 40000 });
   await expect(page.locator("#app")).toHaveAttribute("data-platform", "C");
   await page.screenshot({ path: "test-results/04-ending.png" });

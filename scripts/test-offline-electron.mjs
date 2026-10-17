@@ -95,16 +95,14 @@ try {
     );
     await expect(window.locator("#confirm")).toBeEnabled({ timeout: 25000 });
   }
-  await selectRoad(-60);
-  await window.locator("#confirm").click();
-  await expect(window.locator("#rotation")).toBeDisabled();
-  await expect(window.locator("#app")).toHaveAttribute("data-platform", "B", {
-    timeout: 40000,
-  });
-  await selectRoad(60);
-  await window.locator("#confirm").click();
-  await expect(window.locator("#ending")).toBeVisible({ timeout: 50000 });
-  await expect(window.locator("#app")).toHaveAttribute("data-platform", "C");
+  for(const [angle,node] of [[-56,"L"],[34,"B"],[52,"U"],[-38,"B2"],[-22,"C"]]) {
+    await selectRoad(angle);
+    await window.locator("#confirm").click();
+    await expect(window.locator("#rotation")).toBeDisabled();
+    await expect(window.locator("#app")).toHaveAttribute("data-platform",node,{timeout:45000});
+  }
+  await expect(window.locator("#ending")).toBeVisible({timeout:20000});
+  await expect(window.locator("#app")).toHaveAttribute("data-crossings","5");
   const blocked = await application.evaluate(
     () => globalThis.classroomBlockedRequests,
   );
@@ -122,7 +120,7 @@ try {
       : "development Electron with production dist",
     network: "HTTP, HTTPS and WebSocket blocked before page reload",
     externalRequests: blocked.length,
-    mouseJourney: "A→B→C and ending passed",
+    mouseJourney: "A→L→B→U→B2→C, five projection crossings and ending passed",
     localModelInference: "synthetic video passed",
     physicalCamera: "not tested",
     physicalMac: "not tested by this automated check",

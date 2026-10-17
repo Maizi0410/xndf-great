@@ -1,68 +1,64 @@
-export type Platform = "A" | "B" | "C";
-export type Route = "AB" | "BC" | null;
-export type Phase =
-  | "idle"
-  | "forming"
-  | "ready"
-  | "walking"
-  | "ending"
-  | "complete";
-export const ANGLES = { AB: -60, BC: 60 } as const;
-export const clamp = (n: number, a: number, b: number) =>
-  Math.max(a, Math.min(b, n));
-export function routeAt(angle: number): Route {
-  return Math.abs(angle + 60) <= 9
-    ? "AB"
-    : Math.abs(angle - 60) <= 9
-      ? "BC"
-      : null;
-}
-/** Sole authority for permission, ice and travel; rendering cannot change topology. */
+import { ACTIVE, CONNECTIONS, INITIAL, OUTGOING, clamp, type Alignment, type Configuration, type Connection, type Mechanism, type NodeId } from "./puzzle";
+export { clamp } from "./puzzle";
+export type Phase = "idle" | "forming" | "ready" | "walking" | "ending" | "complete";
 export class WorldRules {
-  platform: Platform = "A";
+  platform: NodeId = "A";
   phase: Phase = "idle";
-  angle = 0;
-  route: Route = null;
-  desired: Route = null;
-  candidate: Route = null;
-  ab = 0;
-  bc = 0;
-  dwell = 0;
-  travel = 0;
-  endTime = 0;
-  changes = 0;
-  elapsed = 0;
-  get locked() {
-    return ["walking", "ending", "complete"].includes(this.phase);
-  }
+  config: Configuration = { ...INITIAL };
+  route: string | null = null;
+  candidate: string | null = null;
+  growth: Record<string,number> = Object.fromEntries(CONNECTIONS.map(c => [c.id,0]));
+  alignments: Alignment[] = [];
+  dwell = 0; travel = 0; endTime = 0; changes = 0; elapsed = 0; stageTime = 0;
+  traversed: string[] = [];
+  walkingConnection: Connection | null = null;
+  get active(): Mechanism { return ACTIVE[this.platform]; }
+  get angle() { return this.config[this.active]; }
+  get next() { return OUTGOING[this.platform]; }
+  get locked() { return ["walking","ending","complete"].includes(this.phase); }
+  get proximity() { return this.alignments.find(a => a.id === this.next?.id)?.proximity ?? 0; }
   get canWalk() {
-    return (
-      this.phase === "ready" &&
-      routeAt(this.angle) === this.route &&
-      ((this.platform === "A" && this.route === "AB") ||
-        (this.platform === "B" && this.route === "BC"))
-    );
+    return this.phase === "ready" && this.route === this.next?.id && this.alignments.some(a => a.id === this.route && a.legal) && this.growth[this.route!] === 1;
   }
   rotate(angle: number) {
-    if (!this.locked) this.angle = clamp(angle, -80, 80);
+    if (!this.locked && Number.isFinite(angle)) {
+      const next = clamp(angle,-80,80);
+      if (next !== this.angle) {
+        this.config[this.active] = next;
+        // Invalidate synchronously, even before the next renderer measurement.
+        this.route = null;
+        this.alignments = [];
+        this.phase = "idle";
+      }
+    }
   }
+  snap() {
+    if (this.locked) return;
+    const angles = [...new Set(CONNECTIONS.map(c => c.controls[this.active]).filter((x): x is number => x !== undefined))];
+    const target = angles.find(a => Math.abs(a-this.angle) <= 4);
+    if (target !== undefined) this.rotate(target);
+  }
+  measure(alignments: Alignment[]) { if (!this.locked) this.alignments = alignments; }
   confirm() {
     if (!this.canWalk) return false;
-    this.phase = "walking";
-    this.travel = 0;
+    this.walkingConnection = this.next!;
+    Object.assign(this.config, this.walkingConnection.controls);
+    this.phase = "walking"; this.travel = 0;
     return true;
   }
-  reset() {
-    Object.assign(this, new WorldRules());
-  }
+  reset() { Object.assign(this,new WorldRules()); }
   update(rawDt: number) {
-    const dt = clamp(rawDt, 0, 0.1);
-    this.elapsed += dt;
+    const dt = clamp(rawDt,0,.1);
+    this.elapsed += dt; this.stageTime += dt;
     if (this.phase === "walking") {
-      this.travel = Math.min(1, this.travel + dt / 7.5);
+      this.travel = Math.min(1,this.travel + dt/8);
       if (this.travel >= 1) {
-        this.platform = this.platform === "A" ? "B" : "C";
-        this.phase = this.platform === "C" ? "ending" : "ready";
+        const connection = this.walkingConnection!;
+        this.traversed.push(connection.id);
+        this.platform = connection.to;
+        this.stageTime = 0;
+        this.phase = this.platform === "C" ? "ending" : "idle";
+        this.route = null; this.candidate = null; this.dwell = 0; this.alignments = [];
       }
       return;
     }
@@ -72,32 +68,19 @@ export class WorldRules {
       return;
     }
     if (this.phase === "complete") return;
-    const next = routeAt(this.angle);
-    if (next !== this.candidate) {
-      this.candidate = next;
-      this.dwell = 0;
-    } else this.dwell += dt;
-    if (this.dwell >= 0.45 && this.desired !== next) {
-      this.desired = next;
-      this.route = null;
-      this.phase = "forming";
-      this.changes++;
+    const next = this.alignments.find(a => a.legal)?.id ?? null;
+    if (next !== this.candidate) { this.candidate = next; this.dwell = 0; }
+    else this.dwell += dt;
+    const stable = this.dwell >= .45 ? next : null;
+    for (const c of CONNECTIONS) {
+      if (c.id !== stable) this.growth[c.id] = Math.max(0,this.growth[c.id]-dt/.85);
     }
-    if (this.desired !== "AB") this.ab = Math.max(0, this.ab - dt / 0.95);
-    if (this.desired !== "BC") this.bc = Math.max(0, this.bc - dt / 0.95);
-    if (this.desired === "AB" && this.bc === 0)
-      this.ab = Math.min(1, this.ab + dt / 2.4);
-    if (this.desired === "BC" && this.ab === 0)
-      this.bc = Math.min(1, this.bc + dt / 2.4);
-    if (
-      (this.desired === "AB" && this.ab === 1) ||
-      (this.desired === "BC" && this.bc === 1)
-    ) {
-      this.route = this.desired;
-      this.phase = "ready";
-    } else if (this.ab === 0 && this.bc === 0 && this.desired === null) {
-      this.route = null;
-      this.phase = "idle";
+    const oldGone = CONNECTIONS.every(c => c.id === stable || this.growth[c.id] === 0);
+    if (stable && oldGone) {
+      if (this.growth[stable] === 0) this.changes++;
+      this.growth[stable] = Math.min(1,this.growth[stable]+dt/1.8);
     }
+    this.route = stable && this.growth[stable] === 1 ? stable : null;
+    this.phase = this.route ? "ready" : stable || Object.values(this.growth).some(g => g>0) ? "forming" : "idle";
   }
 }

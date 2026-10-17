@@ -1,21 +1,19 @@
 import * as T from "three";
-import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { beveledBox } from "./geometry";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { WorldRules } from "../game/rules";
+import { Reflector } from "three/addons/objects/Reflector.js";
+import { ACTIVE, CONNECTIONS, NODES, VIEW_RAY, bridgePose, createPuzzleCamera, evaluate, travelPoint, type BridgePose, type Connection, type Configuration } from "../game/puzzle";
 import {
   stoneTexture,
   waterVertex,
   waterFragment,
   iceMaterial,
 } from "./materials";
-export const POINTS = {
-  A: new T.Vector3(-6, 1.3, 3),
-  B: new T.Vector3(0, 1.3, 0),
-  C: new T.Vector3(4.8, 1.3, -6.8),
-};
+export const POINTS = NODES;
 export class WinterWorld {
   scene = new T.Scene();
   camera: T.OrthographicCamera;
@@ -30,8 +28,12 @@ export class WinterWorld {
   doorLight: T.PointLight;
   wires: T.Mesh[] = [];
   wireMats: T.MeshStandardMaterial[] = [];
-  ice: T.Mesh[] = [];
-  iceSides: T.Mesh[] = [];
+  bridges: { definition: Connection; halves: T.Group[]; ice: T.Mesh[]; marker: T.Mesh; target: T.Mesh; glow: T.MeshStandardMaterial }[] = [];
+  blockers: T.Object3D[] = [];
+  lanterns: T.MeshStandardMaterial[] = [];
+  frameMetrics = { draws: 0, triangles: 0 };
+  reflectionFrame = 0;
+  geometryCache = new Map<string,T.BufferGeometry>();
   snow: T.Points;
   snowBase: Float32Array;
   snowSpeed: Float32Array;
@@ -44,8 +46,11 @@ export class WinterWorld {
   stone = new T.MeshStandardMaterial({
     color: 0xa1b3bd,
     map: stoneTexture(),
-    roughness: 0.95,
+    roughness: 0.92,
+    bumpScale: .065,
   });
+  detailedStone: T.MeshStandardMaterial;
+  carvedStone: T.MeshStandardMaterial;
   snowMat = new T.MeshStandardMaterial({ color: 0xd7e2e4, roughness: 0.86 });
   metal = new T.MeshStandardMaterial({
     color: 0x36464d,
@@ -58,26 +63,29 @@ export class WinterWorld {
     emissiveIntensity: 1.4,
   });
   constructor(public canvas: HTMLCanvasElement) {
+    this.detailedStone=this.stone.clone();
+    this.carvedStone=this.detailedStone.clone();
+    this.carvedStone.bumpMap=this.stone.map;
+    this.detailedStone.roughnessMap=this.stone.map;
     this.renderer = new T.WebGLRenderer({
       canvas,
       antialias: true,
       powerPreference: "high-performance",
     });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    this.renderer.info.autoReset = false;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = T.PCFSoftShadowMap;
     this.renderer.toneMapping = T.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.scene.background = new T.Color(0x0b1c28);
     this.scene.fog = new T.FogExp2(0x102633, 0.025);
-    this.camera = new T.OrthographicCamera(-13, 13, 10, -10, 0.1, 150);
-    this.camera.position.set(20, 23, 27);
-    this.camera.lookAt(0, 0.5, -0.5);
+    this.camera = createPuzzleCamera();
     this.scene.add(new T.HemisphereLight(0xb2d9ec, 0x1e323e, 2));
     const moon = new T.DirectionalLight(0xc6dfef, 3.3);
     moon.position.set(-8, 18, 4);
     moon.castShadow = true;
-    moon.shadow.mapSize.set(2048, 2048);
+    moon.shadow.mapSize.set(1024, 1024);
     Object.assign(moon.shadow.camera, {
       left: -16,
       right: 16,
@@ -102,7 +110,7 @@ export class WinterWorld {
       2.4,
       0.34,
     );
-    this.box(0.75, 2.1, 0.6, this.stone, -1.25, 2.35, -0.8);
+    this.blockers.push(this.box(0.75, 2.1, 0.6, this.stone, -1.25, 2.35, -0.8));
     this.box(0.84, 0.13, 0.7, this.snowMat, -1.25, 3.45, -0.8);
     this.box(0.05, 0.9, 0.03, this.warm, -1.25, 2.55, -0.48);
     const portal = POINTS.C.clone().add(new T.Vector3(0.1, 0, -0.55));
@@ -111,7 +119,7 @@ export class WinterWorld {
     this.doorLight = new T.PointLight(0xffc77d, 13, 8, 2);
     this.doorLight.position.set(portal.x, 2.5, portal.z + 0.65);
     this.scene.add(this.doorLight);
-    Object.values(POINTS).forEach((v, i) =>
+    [POINTS.A, POINTS.B, POINTS.C].forEach((v, i) =>
       this.pole(
         v
           .clone()
@@ -128,16 +136,29 @@ export class WinterWorld {
       },
       vertexShader: waterVertex,
       fragmentShader: waterFragment,
+      transparent: true,
+      depthWrite: false,
     });
+    const mirror = new Reflector(new T.PlaneGeometry(160,160), { color: 0x8ba2ac, textureWidth: 384, textureHeight: 384, clipBias: .003 });
+    const reflect = mirror.onBeforeRender.bind(mirror);
+    mirror.onBeforeRender = (...args) => {
+      if(this.reflectionFrame++ % 4 === 0) reflect(...args);
+    };
+    mirror.rotation.x = -Math.PI/2;
+    mirror.position.y = -.36;
+    this.scene.add(mirror);
     const water = new T.Mesh(
-      new T.PlaneGeometry(180, 180, 150, 150),
+      new T.PlaneGeometry(180, 180, 64, 64),
       this.water,
     );
     water.rotation.x = -Math.PI / 2;
     water.position.y = -0.35;
     this.scene.add(water);
-    this.makeIce(POINTS.A, POINTS.B);
-    this.makeIce(POINTS.B, POINTS.C);
+    this.makeLanding(POINTS.L, "西");
+    this.makeLanding(POINTS.U, "东");
+    this.makeLanding(POINTS.B2, "上");
+    for (const definition of CONNECTIONS) this.makeBridge(definition);
+    this.makeRuins();
     this.createCharacter();
     this.scene.add(this.character);
     this.character.position.copy(POINTS.A);
@@ -155,7 +176,7 @@ export class WinterWorld {
         i * 3,
       );
       this.snowSpeed[i] = 0.3 + Math.random() * 0.65;
-      sizes[i] = ((i % 3) + 1) * 1.2;
+      sizes[i] = [1.1, 2.5, 7][i%3];
     }
     const sg = new T.BufferGeometry();
     sg.setAttribute(
@@ -169,7 +190,7 @@ export class WinterWorld {
         transparent: true,
         depthWrite: false,
         uniforms: { pixelRatio: { value: this.renderer.getPixelRatio() } },
-        vertexShader: `attribute float size;uniform float pixelRatio;varying float alpha;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);alpha=clamp(1.-(-mv.z)/85.,.08,.6);gl_PointSize=size*pixelRatio;gl_Position=projectionMatrix*mv;}`,
+        vertexShader: `attribute float size;uniform float pixelRatio;varying float alpha;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);alpha=clamp(1.-(-mv.z)/85.,.08,.6)*(size>5.?.48:1.);gl_PointSize=size*pixelRatio;gl_Position=projectionMatrix*mv;}`,
         fragmentShader: `varying float alpha;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(.82,.9,.94,alpha*smoothstep(.5,.05,d));}`,
       }),
     );
@@ -226,12 +247,15 @@ export class WinterWorld {
     z: number,
     parent: T.Object3D = this.scene,
   ) {
-    const m = new T.Mesh(
-      new RoundedBoxGeometry(w, h, d, 2, Math.min(0.045, w / 4, h / 4, d / 4)),
-      mat,
-    );
+    const key = `${w},${h},${d}`;
+    let geometry = this.geometryCache.get(key);
+    if (!geometry) {
+      geometry = beveledBox(w,h,d,Math.min(.045,w/4,h/4,d/4));
+      this.geometryCache.set(key,geometry);
+    }
+    const m = new T.Mesh(geometry,mat);
     m.position.set(x, y, z);
-    m.castShadow = true;
+    m.castShadow = h > .16;
     m.receiveShadow = true;
     parent.add(m);
     return m;
@@ -263,7 +287,7 @@ export class WinterWorld {
         bevelThickness: 0.06,
       });
       geo.rotateX(-Math.PI / 2);
-      const mat = this.stone.clone();
+      const mat = this.detailedStone.clone();
       mat.color.multiplyScalar(0.79 + layer * 0.065);
       const mesh = new T.Mesh(geo, mat);
       mesh.position.set(
@@ -297,6 +321,16 @@ export class WinterWorld {
       }
     this.box(0.55, 2.3, 0.7, this.stone, p.x - r * 0.75, p.y - 1.2, p.z + 0.5);
     this.box(0.45, 1.8, 0.6, this.stone, p.x + r * 0.6, p.y - 1.2, p.z - 0.7);
+    // Dry, irregular stone paving remains visible between windblown snow caps.
+    const paving = new T.InstancedMesh(beveledBox(.63,.075,.6,.025),this.stone,25);
+    let tile = 0;
+    const matrix = new T.Matrix4();
+    for(let x=-2;x<=2;x++) for(let z=-2;z<=2;z++) {
+      matrix.makeTranslation(p.x+x*.66,p.y+.025,p.z+z*.65);
+      paving.setMatrixAt(tile++,matrix);
+    }
+    paving.receiveShadow=true;
+    this.scene.add(paving);
     const c = document.createElement("canvas");
     c.width = 128;
     c.height = 128;
@@ -339,12 +373,13 @@ export class WinterWorld {
         bevelThickness: 0.04,
         steps: 1,
       }),
-      this.stone,
+      this.carvedStone,
     );
     mesh.position.copy(p);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.scene.add(mesh);
+    this.blockers.push(mesh);
     this.box(
       w + 0.1,
       0.09,
@@ -396,6 +431,10 @@ export class WinterWorld {
       light.position.set(0, 1.6, 0.3);
       g.add(light);
     }
+    const lampMat = this.warm.clone();
+    this.lanterns.push(lampMat);
+    this.box(.12,.25,.12,lampMat,.3,3.6,.15,g);
+    this.box(.18,.04,.18,this.metal,.3,3.75,.15,g);
     g.userData.head = head;
   }
   updateWires() {
@@ -437,38 +476,87 @@ export class WinterWorld {
         this.wires.push(w);
       }
   }
-  makeIce(a: T.Vector3, b: T.Vector3) {
-    const len = a.distanceTo(b) - 2.2,
-      center = a.clone().lerp(b, 0.5),
-      dir = b.clone().sub(a).normalize();
-    const top = new T.Mesh(
-      new T.PlaneGeometry(1.05, len, 12, 48),
-      iceMaterial(),
-    );
-    top.rotation.x = -Math.PI / 2;
-    top.rotation.z = Math.atan2(dir.x, dir.z) + Math.PI;
-    top.position.copy(center);
-    top.position.y = 1.355;
-    this.scene.add(top);
-    this.ice.push(top);
-    const side = this.box(
-      1.05,
-      0.17,
-      len,
-      new T.MeshStandardMaterial({
-        color: 0x7cabb6,
-        transparent: true,
-        opacity: 0,
-        roughness: 0.3,
-        metalness: 0.25,
-      }),
-      center.x,
-      1.27,
-      center.z,
-    );
-    side.rotation.y = Math.atan2(dir.x, dir.z);
-    side.visible = false;
-    this.iceSides.push(side);
+  makeLanding(p: T.Vector3, label: string) {
+    this.box(1.28,.3,1.25,this.stone,p.x,p.y-.15,p.z);
+    this.box(1.3,.055,1.27,this.snowMat,p.x,p.y-.005,p.z);
+    this.box(.45,p.y+.35,.48,this.stone,p.x,p.y/2-.35,p.z);
+    this.box(.08,.18,.08,this.warm,p.x+.48,p.y+.08,p.z+.45);
+    // A fixed safe slab: every rotating half is hinged at, not under, the feet.
+    const ring = new T.Mesh(new T.TorusGeometry(.34,.012,4,32),this.warm);
+    ring.rotation.x=-Math.PI/2; ring.position.copy(p).y+=.04;
+    ring.userData.label=label;
+    this.scene.add(ring);
+  }
+  makeBridge(definition: Connection) {
+    const exact = {axis:0,stairs:0,crown:0,...definition.controls};
+    const pose = bridgePose(definition,exact);
+    const halves: T.Group[] = [], ice: T.Mesh[] = [];
+    for (const [index,half] of [pose.left,pose.right].entries()) {
+      const group = new T.Group();
+      group.position.copy(half.anchor);
+      this.scene.add(group); halves.push(group);
+      const points = half.bend ? [half.anchor,half.bend,half.tip] : [half.anchor,half.tip];
+      const segments = points.slice(1).map((b,i)=>[points[i],b]);
+      for (const [a,b] of segments) {
+        const length = Math.hypot(b.x-a.x,b.z-a.z);
+        const count = Math.max(3,Math.ceil(length/.28));
+        const stone = new T.InstancedMesh(beveledBox(.83,.25,Math.max(.17,length/count+.025),.025),this.stone,count);
+        const snow = new T.InstancedMesh(new T.BoxGeometry(.85,.035,Math.max(.18,length/count)),this.snowMat,count);
+        const dummy = new T.Object3D();
+        for(let i=0;i<count;i++) {
+          const point=a.clone().lerp(b,(i+.5)/count).sub(half.anchor);
+          dummy.position.copy(point); dummy.position.y-=.13;
+          dummy.rotation.y=Math.atan2(b.x-a.x,b.z-a.z); dummy.updateMatrix(); stone.setMatrixAt(i,dummy.matrix);
+          dummy.position.y+=.14; dummy.updateMatrix(); snow.setMatrixAt(i,dummy.matrix);
+        }
+        stone.castShadow=true; stone.receiveShadow=true; snow.receiveShadow=true;
+        group.add(stone,snow);
+      }
+      // Each permission grows along its own stone stair: no invisible V1 ice shortcut.
+      const delta=half.tip.clone().sub(half.anchor);
+      const length=delta.length();
+      const ribbon = new T.Mesh(new T.PlaneGeometry(.72,length,2,24),iceMaterial());
+      ribbon.position.copy(delta).multiplyScalar(.5).y+=.035;
+      const forward=delta.clone().normalize(), right=forward.clone().cross(T.Object3D.DEFAULT_UP).normalize();
+      ribbon.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(right,forward,right.clone().cross(forward)));
+      (ribbon.material as T.ShaderMaterial).side=T.DoubleSide;
+      group.add(ribbon); ice.push(ribbon);
+      if(definition.decoy === "direction" && index===0) group.visible=false;
+    }
+    const glow=this.warm.clone(); glow.emissiveIntensity=.05;
+    const marker=new T.Mesh(new T.TorusGeometry(.24,.018,6,32),glow);
+    marker.rotation.x=-Math.PI/2; this.scene.add(marker);
+    const target = new T.Mesh(new T.TorusGeometry(.24,.018,6,32),glow);
+    target.rotation.x=-Math.PI/2; this.scene.add(target);
+    this.bridges.push({definition,halves,ice,marker,target,glow});
+  }
+  makeRuins() {
+    // Designed perimeter fragments frame the playable architecture, never its corridor.
+    const columns=[[-9,3.5,7],[-2,2.1,7.5],[6,2.8,6.5],[9,3,-4],[-8,3,-7],[1,2,-11]];
+    for(const [x,h,z] of columns) {
+      this.box(.65,h,.72,this.stone,x,h/2-.35,z);
+      this.box(.72,.08,.78,this.snowMat,x,h-.31,z);
+      this.box(.68,.15,.75,this.stone,x,h*.45,z);
+    }
+    // Central upper court is supported by narrow layered stone rather than a floating cube.
+    for(const x of [-.49,.49]) {
+      this.box(.23,2.55,.23,this.stone,x,2.55,-.75);
+      this.box(.3,.1,.3,this.snowMat,x,3.86,-.75);
+    }
+    // Branching icicles beneath ledges, batched into a single draw call.
+    const icicles=new T.InstancedMesh(new T.ConeGeometry(.035,.38,5),new T.MeshStandardMaterial({color:0x99b9c6,roughness:.28,metalness:.15}),72);
+    const dummy=new T.Object3D();
+    for(let i=0;i<72;i++) {
+      const p=[POINTS.A,POINTS.B,POINTS.C][i%3];
+      const a=i*2.39996;
+      dummy.position.set(p.x+Math.cos(a)*1.72,p.y-.22,p.z+Math.sin(a)*1.72);
+      dummy.rotation.z=Math.PI; dummy.scale.y=.5+(i%5)*.19; dummy.updateMatrix(); icicles.setMatrixAt(i,dummy.matrix);
+    }
+    this.scene.add(icicles);
+  }
+  measure(r: WorldRules) {
+    this.resize();
+    r.measure(evaluate(r.config,r.platform,this.camera,this.width,this.height,this.blockers));
   }
   createCharacter() {
     const coat = new T.MeshStandardMaterial({
@@ -546,38 +634,41 @@ export class WinterWorld {
     this.time += dt;
     this.resize();
     this.water.uniforms.time.value = this.time;
-    this.water.uniforms.permission.value = r.ab + r.bc;
-    const angle = T.MathUtils.damp(
-      this.lastAngle === 999 ? 0 : this.lastAngle,
-      r.angle,
-      7,
-      dt,
-    );
-    if (Math.abs(angle - this.lastAngle) > 0.12 || this.lastAngle === 999) {
-      this.lastAngle = angle;
-      this.updateWires();
+    const permission=Math.max(0,...Object.values(r.growth));
+    this.water.uniforms.permission.value = permission;
+    if(Math.abs(r.config.axis-this.lastAngle)>.12 || this.lastAngle===999) {
+      this.lastAngle=r.config.axis; this.updateWires();
     }
-    for (let i = 0; i < 2; i++) {
-      const g = i === 0 ? r.ab : r.bc;
-      (this.ice[i].material as T.ShaderMaterial).uniforms.growth.value = g;
-      this.ice[i].visible = g > 0.001;
-      this.iceSides[i].visible = g > 0.97;
-      (this.iceSides[i].material as T.MeshStandardMaterial).opacity = g * 0.66;
-      if (this.wireMats[i]) this.wireMats[i].emissiveIntensity = g * 0.7;
+    for(const bridge of this.bridges) {
+      const pose=bridgePose(bridge.definition,r.config);
+      bridge.halves[0].rotation.y=pose.left.rotation;
+      bridge.halves[1].rotation.y=pose.right.rotation;
+      const growth=r.growth[bridge.definition.id];
+      for(const mesh of bridge.ice) {
+        (mesh.material as T.ShaderMaterial).uniforms.growth.value=growth;
+        mesh.visible=growth>.001;
+      }
+      bridge.marker.position.copy(pose.left.tip).y+=.04;
+      bridge.target.position.copy(pose.right.tip).y+=.04;
+      const alignment=r.alignments.find(a=>a.id===bridge.definition.id);
+      bridge.glow.emissiveIntensity=.08+(alignment?.proximity??0)*.5+growth*2;
+      bridge.target.visible=bridge.definition.from===r.platform || growth>.01;
+      bridge.marker.visible=bridge.target.visible && bridge.definition.decoy!=="direction";
+      // Keep topological feedback on the same actual bridge geometry.
     }
+    this.wireMats.forEach((mat)=>mat.emissiveIntensity=.04+permission*.7+r.proximity*.25);
+    this.lanterns.forEach((mat,i)=>mat.emissiveIntensity=.8+permission*(i+1)*.4);
     const pos = POINTS[r.platform].clone();
     if (r.phase === "walking") {
-      const target = r.platform === "A" ? POINTS.B : POINTS.C,
-        t = r.travel;
-      const e =
-        t < 0.08
-          ? (t * t) / 0.16
-          : t > 0.92
-            ? 0.96 - ((1 - t) * (1 - t)) / 0.16
-            : t - 0.04;
-      pos.lerp(target, Math.min(1, e / 0.96));
-      const dir = target.clone().sub(POINTS[r.platform]);
-      this.character.rotation.y = Math.atan2(dir.x, dir.z);
+      const connection=r.walkingConnection!;
+      const pose=bridgePose(connection,r.config), t=r.travel;
+      pos.copy(travelPoint(connection,pose,t));
+      const ahead=travelPoint(connection,pose,Math.min(1,t+.008)).sub(pos);
+      // During the depth transfer keep the screen-facing walk direction stable.
+      if(t<.44 || t>.56) {
+        const turn=T.MathUtils.euclideanModulo(Math.atan2(ahead.x,ahead.z)-this.character.rotation.y+Math.PI,Math.PI*2)-Math.PI;
+        this.character.rotation.y+=turn*(1-Math.exp(-dt*12));
+      }
       const stride = Math.sin(t * Math.PI * 22),
         taper = Math.min(1, t * 12, (1 - t) * 12);
       this.body.position.y = 0.4 + Math.abs(stride) * 0.025 * taper;
@@ -608,10 +699,11 @@ export class WinterWorld {
       end ? Math.max(0, 1 - (r.endTime - 2) / 2) : 1,
     );
     const pull = end ? 1 + r.endTime * 0.018 : started ? 1 : 1.045;
-    this.camera.zoom = T.MathUtils.damp(this.camera.zoom, 1 / pull, 1.2, dt);
+    this.camera.zoom = end ? T.MathUtils.damp(this.camera.zoom, 1 / pull, 1.2, dt) : 1;
     this.camera.updateProjectionMatrix();
     const arr = this.snow.geometry.attributes.position.array as Float32Array,
-      field = end ? 0 : Math.min(1, Math.abs(r.angle) / 60) * 0.5;
+      field = end ? 0 : r.proximity;
+    const snowPose = r.next ? bridgePose(r.next,r.config) : null;
     for (let i = 0; i < this.snowSpeed.length; i++) {
       const j = i * 3,
         s = this.snowSpeed[i];
@@ -622,16 +714,27 @@ export class WinterWorld {
       arr[j + 1] =
         ((((this.snowBase[j + 1] - this.time * s) % 22) + 22) % 22) - 0.4;
       arr[j + 2] = this.snowBase[j + 2] + Math.cos(this.time * 0.21 + i) * 0.35;
-      if (i % 4 === 0)
-        arr[j + 2] = T.MathUtils.lerp(
-          arr[j + 2],
-          arr[j] * Math.tan((r.angle * Math.PI) / 180) * 0.22,
-          field,
-        );
+      if (i % 16 === 0 && this.wires.length) {
+        const path=(this.wires[i%this.wires.length].geometry as T.TubeGeometry).parameters.path;
+        const p=path.getPoint((i%71)/71);
+        arr[j]=T.MathUtils.lerp(arr[j],p.x,field*.85);
+        arr[j+1]=T.MathUtils.lerp(arr[j+1],p.y+.06,field*.85);
+        arr[j+2]=T.MathUtils.lerp(arr[j+2],p.z,field*.85);
+      } else if (i % 4 === 0 && snowPose) {
+        const pose=snowPose;
+        const tip=i%8===0?pose.left.tip:pose.right.tip;
+        const anchor=i%8===0?pose.left.anchor:pose.right.anchor;
+        const k=(i%64)/64;
+        arr[j]=T.MathUtils.lerp(arr[j],T.MathUtils.lerp(anchor.x,tip.x,k),field*.92);
+        arr[j+1]=T.MathUtils.lerp(arr[j+1],T.MathUtils.lerp(anchor.y,tip.y,k)+.13,field*.92);
+        arr[j+2]=T.MathUtils.lerp(arr[j+2],T.MathUtils.lerp(anchor.z,tip.z,k),field*.92);
+      }
     }
     this.snow.geometry.attributes.position.needsUpdate = true;
     (this.field.material as T.LineBasicMaterial).opacity = 0.06 + field * 0.12;
-    this.field.rotation.y = (r.angle * Math.PI) / 180;
+    this.field.rotation.y = (r.config.axis * Math.PI) / 180;
+    this.renderer.info.reset();
     this.composer.render();
+    this.frameMetrics={draws:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles};
   }
 }

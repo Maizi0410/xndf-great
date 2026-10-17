@@ -7,6 +7,7 @@ on:
       - "src/**"
       - "public/**"
       - "scripts/prepare-assets.mjs"
+      - "scripts/record-web-run.mjs"
       - "index.html"
       - "package.json"
       - "package-lock.json"
@@ -25,6 +26,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  announce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/record-web-run.mjs running
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -61,12 +71,15 @@ jobs:
           path: test-results/
 
   deploy:
-    needs: build
+    needs: [build, announce]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+      live_result: ${{ steps.live.outcome }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -77,7 +90,8 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-      - name: Check live HTTPS entry, subpath and offline model
+      - name: Check live HTTPS entry, revision, subpath and offline model
+        id: live
         env:
           GAME_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
@@ -90,6 +104,8 @@ jobs:
               const page = await fetch(base, { signal: AbortSignal.timeout(20000) });
               if (!page.ok) throw new Error(`Page HTTP ${page.status}`);
               const html = await page.text();
+              const info = await fetch(new URL(`build-info.json?rev=${process.env.GITHUB_SHA}`, base));
+              if (!info.ok || (await info.json()).source_commit !== process.env.GITHUB_SHA) throw new Error('Live site has not updated to this commit');
               if (!html.includes('THE PERMITTED WORLD')) throw new Error('Wrong page');
               const assets = [...html.matchAll(new RegExp('(?:src|href)="([^"]+/assets/[^"]+)"', 'g'))];
               if (assets.length < 2) throw new Error('Missing script/style references');
@@ -112,3 +128,20 @@ jobs:
             }
           }
           JS
+
+  record-result:
+    if: always()
+    needs: [announce, build, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record actual deployment and live verification results
+        env:
+          WEB_BUILD_RESULT: ${{ needs.build.result }}
+          WEB_DEPLOY_RESULT: ${{ needs.deploy.result }}
+          WEB_LIVE_RESULT: ${{ needs.deploy.outputs.live_result }}
+          WEB_PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: node scripts/record-web-run.mjs completed

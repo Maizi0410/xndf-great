@@ -3,6 +3,7 @@ export class Soundscape {
   master: GainNode | null = null;
   enabled = true;
   lastFootstep = 0;
+  lastRotation = 0;
   async start() {
     if (this.context) {
       await this.context.resume();
@@ -87,10 +88,17 @@ export class Soundscape {
     this.tone(680, 1.8, 0.2, "triangle");
     setTimeout(() => this.tone(1020, 1.2, 0.08), 180);
   }
-  step(now: number) {
+  rotate(now: number, proximity: number) {
+    if(now-this.lastRotation<.24) return;
+    this.lastRotation=now;
+    this.tone(54+proximity*90,.28,.035,"triangle");
+    if(proximity>.7) this.tone(350+proximity*180,.3,.025);
+  }
+  melt() { this.tone(92,1.4,.1,"triangle"); this.tone(170,.45,.04,"sawtooth"); }
+  step(now: number, material: "stone" | "ice" = "stone") {
     if (now - this.lastFootstep > 0.64) {
       this.lastFootstep = now;
-      this.tone(100 + Math.random() * 40, 0.12, 0.13, "triangle");
+      this.tone((material === "ice" ? 260 : 100) + Math.random() * 40, 0.12, 0.1, "triangle");
     }
   }
   finish() {

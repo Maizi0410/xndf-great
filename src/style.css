@@ -781,3 +781,12 @@ video {
     scroll-behavior: auto;
   }
 }
+/* V2 keeps the editorial frame; controls expose the currently reachable hinge. */
+.journey { width: 245px; }
+.journey span { width: 25px; height: 25px; font-size: 10px; flex-shrink: 0; }
+.location { width: 245px; }
+.control-help { display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--line); padding:8px 0 10px; color:#839ba7; font-size:9px; letter-spacing:1px; }
+.control-help button { font-size:10px; color:#c7b58f; padding:5px 0 5px 12px; }
+.observation { margin:0 0 13px; color:#acbdc4; font-size:11px; line-height:1.9; }
+.ticks i:nth-child(2), .ticks i:nth-child(8) { background:#8ea7b633; height:7px; }
+@media(max-width:650px) { .journey,.location {width:150px;} .journey span{width:20px;height:20px;font-size:8px;} .journal p{max-width:180px;} }

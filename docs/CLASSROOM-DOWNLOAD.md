@@ -1,3 +1,5 @@
+> 以下为 **V1 / 0.1.0 历史记录**，保留用于稳定版回退；不是 V2 验收或 V2 下载证明。当前结果见 [V2-ACCEPTANCE.md](V2-ACCEPTANCE.md)。
+
 # 从 GitHub 下载课堂 Mac ZIP
 
 本地备份 ZIP 仍保存在云端，但课堂交付优先使用 GitHub Actions 的 Artifact，不依赖聊天附件预览。

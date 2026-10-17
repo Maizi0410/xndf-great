@@ -1,3 +1,5 @@
+> 以下为 **V1 / 0.1.0 历史记录**，保留用于稳定版回退；不是 V2 验收或 V2 下载证明。当前结果见 [V2-ACCEPTANCE.md](V2-ACCEPTANCE.md)。
+
 # 0.1.0 验收记录
 
 验证环境：Linux x64 云环境，Node 24.19.0，系统 Chromium + SwiftShader，以及实际 Electron 44.9.0（headless Linux）。这份记录不代表 Mac 实机已验收。

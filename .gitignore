@@ -11,3 +11,5 @@ public/vision/wasm/
 dist-web/
 
 release-classroom/
+
+public/build-info.json

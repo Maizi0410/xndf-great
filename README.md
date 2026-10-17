@@ -1,16 +1,18 @@
+> **当前开发版：V2.0 空间解谜（包版本 0.2.0）**。三组联动机构、五次视觉重合与同一场景中的高低回路。V1 已保留为 `v1.0-stable`。[V2 玩法、解答与工程说明](docs/V2.md) · [V2 验证记录](docs/V2-ACCEPTANCE.md)。
+
 # 界限 / THE PERMITTED WORLD
 
 **每一条被允许的路，都是另一种可能的消失。**
 
 原创单场景第三人称正交视角艺术解谜游戏，Vite + TypeScript + Three.js + MediaPipe Hand Landmarker + Electron。三座冬日石岛、三根电线杆、一扇暖光门。玩家改变可行走的空间秩序，让人物从 I 经 II 抵达 III。
 
-当前定位是 **0.1.0 课堂主题作业**：网页优先保证鼠标通关，手势作为增强体验；Apple Silicon Mac 提供可通过 ZIP 分享的 `.app`，用于断网演示。不以商业发行、App Store、Developer ID 签名或公证为当前交付前提。
+当前定位是 **0.2.0 课堂主题作业**：网页优先保证鼠标通关，手势作为增强体验；Apple Silicon Mac 提供可通过 ZIP 分享的 `.app`，用于断网演示。不以商业发行、App Store、Developer ID 签名或公证为当前交付前提。
 
-**课堂请先看：[简洁中文使用说明](docs/CLASSROOM.md)**。展示步骤、网页入口、两个手势、鼠标备用和本地运行方式均在其中；[课堂验收记录](docs/CLASSROOM-ACCEPTANCE.md)区分自动测试与真实设备验证。
+**课堂请先看：[简洁中文使用说明](docs/CLASSROOM.md)**。展示步骤、网页入口、两个手势、鼠标备用和本地运行方式均在其中；[V2 验收记录](docs/V2-ACCEPTANCE.md)区分自动测试与真实设备验证。
 
 ## 课堂 Mac ZIP
 
-原有 Pages、DMG 工作流保持不变，新增独立 [Build classroom Mac ZIP](https://github.com/guoanze550-commits/xndf-great/actions/workflows/build-classroom-mac.yml)。相关 `main` 提交会自动构建，也可在 Actions 手动运行 `main`；成功后下载 `The-Permitted-World-Classroom-Mac-Apple-Silicon-arm64` Artifact。外层 Artifact ZIP 内含可再分发的 `.app` ZIP、校验值和自动验证报告。无需 Apple 开发者账户或 Secrets。
+保留 Pages、DMG 工作流，并继续使用独立 [Build classroom Mac ZIP](https://github.com/guoanze550-commits/xndf-great/actions/workflows/build-classroom-mac.yml)。相关 `main` 提交会自动构建，也可在 Actions 手动运行 `main`；成功后下载 `The-Permitted-World-Classroom-Mac-Apple-Silicon-arm64` Artifact。外层 Artifact ZIP 内含可再分发的 `.app` ZIP、校验值和自动验证报告。无需 Apple 开发者账户或 Secrets。
 
 Apple Silicon Mac 本机构建：`npm ci`、`npx --no-install install-electron`、`npm run classroom:mac`。输出到独立 `release-classroom/`，保留原 `release/` 和网页 `dist-web/`。运行 `npm run test:offline` 可在实际 Electron 中屏蔽所有 HTTP(S)/WebSocket，再验证本地模型推理与完整鼠标通关；该检查不等同于真实 Mac 断网验收。
 
@@ -50,12 +52,12 @@ npm run desktop
 
 1. 点击「进入界限」。摄像头不是启动条件。
 2. 在场景中按住鼠标左右拖动，或拖动底部秩序刻度。
-3. 转到 **−60°** 附近并停留，I—II 之间逐渐结冰。冰路完整形成后，点击「允许前行」。
-4. 人物行走期间道路和控制装置锁定。抵达 II 后，将装置转到 **+60°** 附近。
-5. I—II 先融化，II—III 再凝结。同一时间只存在一条主要冰路。再次确认，人物抵达门。
-6. 通过结局按钮或右上角 ↺ 重新开始。声音按钮可随时静音。
+3. 对齐石阶两端，观察雪与冰晶反馈；合法后点击「允许前行」。
+4. 依次经过 **A→西阶→中庭 B→东廊→上庭 B2→终点 C**，共五次过渡。当前安全位置决定操作机构，中央轴需要复用三次；西阶与回廊保留已确定的朝向。
+5. 位置重合还须满足方向和入口可达性；折返和远处无入口的桥不会获得许可。需要时点「观察提示」。
+6. 行走期间结构锁定；旧冰先消失，新冰再凝结。完成后可重开或静音。
 
-离开两个合法角度并停留，会取消道路许可。错误方向不会让人物走入水面。键盘也支持左右箭头微调、Enter 确认；聚焦滑块时使用滑块自身键盘操作。
+完整课堂展示解答、组合表和投影算法见 [V2 说明](docs/V2.md)。键盘左右箭头微调、Enter 确认；聚焦滑块时使用滑块自身键盘操作。
 
 ### 手势模式（可选）
 

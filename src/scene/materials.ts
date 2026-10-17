@@ -36,10 +36,11 @@ export function stoneTexture() {
   return t;
 }
 export const waterVertex = `varying vec3 vWorld;varying vec3 vNormal;uniform float time;
-void main(){vec3 p=position;p.z+=sin(p.x*.52+time*.38)*.055+sin(p.y*.72-time*.28)*.035;vec4 wp=modelMatrix*vec4(p,1.);vWorld=wp.xyz;vNormal=normalize(mat3(modelMatrix)*vec3(-.029*cos(p.x*.52+time*.38),-.025*cos(p.y*.72-time*.28),1.));gl_Position=projectionMatrix*viewMatrix*wp;}`;
+void main(){vec3 p=position;vec4 wp=modelMatrix*vec4(p,1.);vWorld=wp.xyz;vNormal=normalize(mat3(modelMatrix)*vec3(-.029*cos(p.x*.52+time*.38),-.025*cos(p.y*.72-time*.28),1.));gl_Position=projectionMatrix*viewMatrix*wp;}`;
 export const waterFragment = `varying vec3 vWorld;varying vec3 vNormal;uniform float time;uniform vec3 eye;uniform vec2 gate;uniform float permission;
-void main(){vec3 V=normalize(eye-vWorld);float f=pow(1.-max(dot(normalize(vNormal),V),0.),3.);float rip=sin(vWorld.x*2.+sin(vWorld.z*1.6+time*.4)+time*.45)*sin(vWorld.z*3.-time*.3);vec3 color=mix(vec3(.025,.065,.087),vec3(.15,.24,.28),f*.7);color+=rip*.008;
-float spec=pow(max(dot(reflect(normalize(vec3(-7.,-14.,-6.)),normalize(vNormal)),V),0.),95.);color+=vec3(.37,.48,.50)*spec*.23;vec2 d=vWorld.xz-gate;float refl=exp(-abs(d.x)*2.4)*exp(-abs(d.y)*.45)*(sin(d.y*17.+time)*.2+.8);color+=vec3(.4,.24,.10)*refl*.26;float rings=abs(sin(length(vWorld.xz)*2.-time*.8));color+=vec3(.04,.09,.1)*pow(rings,35.)*exp(-length(vWorld.xz)*.16)*permission*.2;color*=.58;gl_FragColor=vec4(color,1.);}`;
+void main(){vec3 N=normalize(vNormal);vec3 V=normalize(eye-vWorld);float f=pow(1.-max(dot(N,V),0.),3.);float rip=sin(vWorld.x*2.+sin(vWorld.z*1.6+time*.4)+time*.45)*sin(vWorld.z*3.-time*.3);vec3 color=mix(vec3(.025,.065,.087),vec3(.15,.24,.28),f*.7);color+=rip*.008;
+float spec=pow(max(dot(reflect(normalize(vec3(-7.,-14.,-6.)),N),V),0.),95.);color+=vec3(.37,.48,.50)*spec*.23;vec2 d=vWorld.xz-gate;float refl=exp(-abs(d.x)*2.4)*exp(-abs(d.y)*.45)*(sin(d.y*17.+time)*.2+.8);color+=vec3(.4,.24,.10)*refl*.26;float rings=abs(sin(length(vWorld.xz)*2.-time*.8));color+=vec3(.04,.09,.1)*pow(rings,35.)*exp(-length(vWorld.xz)*.16)*permission*.2;
+color*=.78;gl_FragColor=vec4(color,.56);}`;
 export function iceMaterial() {
   return new T.ShaderMaterial({
     transparent: true,

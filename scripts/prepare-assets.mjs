@@ -1,5 +1,6 @@
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { deflateSync } from "node:zlib";
 await mkdir("public/vision/wasm", { recursive: true });
 await cp("node_modules/@mediapipe/tasks-vision/wasm", "public/vision/wasm", {
@@ -61,3 +62,7 @@ await writeFile(
   ]),
 );
 console.log("Local WASM, model SHA-256 and icon verified.");
+
+const pkg = JSON.parse(await readFile("package.json", "utf8"));
+const source = process.env.GITHUB_SHA || execFileSync("git", ["rev-parse", "HEAD"], {encoding:"utf8"}).trim();
+await writeFile("public/build-info.json", JSON.stringify({version:pkg.version,source_commit:source})+"\n");
