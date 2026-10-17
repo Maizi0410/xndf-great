@@ -1,0 +1,9 @@
+{
+  "source": "Google @mediapipe/hands@0.4.1675469240 (Apache-2.0)",
+  "modification": "Added [0,1] normalization metadata to unchanged official models; bundled for HandLandmarker",
+  "sha256": "94cae88157602cec45e48fe0c572b418a9641a9aae977ffd71dddbce167201a1",
+  "originalModels": {
+    "palm": "2f25e740121983f68ffc05f99991d524dc0ea812134f6316a26125816941ee85",
+    "landmarks": "8c026882c9ec059ce0f8e75266bee5a9a23c341a40e0000df755374d3d1b9b68"
+  }
+}

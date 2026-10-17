@@ -1,0 +1,90 @@
+{
+  "name": "the-permitted-world",
+  "version": "0.1.0",
+  "private": true,
+  "description": "界限 — an original winter diorama about the cost of permission",
+  "author": "THE PERMITTED WORLD contributors",
+  "license": "MIT",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "assets": "node scripts/prepare-assets.mjs",
+    "prebuild": "npm run assets",
+    "build": "vite build",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "preview": "vite preview --host 0.0.0.0",
+    "desktop": "electron .",
+    "dist:mac": "npm run typecheck && npm test && npm run build && electron-builder --mac --arm64 --publish never -c.mac.identity=- -c.mac.hardenedRuntime=false",
+    "verify:mac": "node scripts/verify-mac.mjs",
+    "test:desktop": "node scripts/smoke-electron.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.1.1",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@electron/asar": "3.4.1",
+    "@mediapipe/hands": "0.4.1675469240",
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.10.1",
+    "@types/three": "0.183.1",
+    "electron": "44.9.0",
+    "electron-builder": "26.15.3",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  },
+  "build": {
+    "appId": "art.permittedworld.game",
+    "productName": "The Permitted World",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.puzzle-games",
+      "icon": "build/icon.png",
+      "minimumSystemVersion": "13.0",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": false,
+      "extendInfo": {
+        "NSCameraUsageDescription": "使用本机摄像头识别手掌和捏合来控制冰路。视频只在本机处理，不上传、不录制。"
+      }
+    },
+    "artifactName": "The-Permitted-World-${version}-macOS-Apple-Silicon-arm64.${ext}",
+    "dmg": {
+      "title": "界限 · Apple Silicon",
+      "contents": [
+        {
+          "x": 140,
+          "y": 180
+        },
+        {
+          "x": 420,
+          "y": 180,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  }
+}
