@@ -6,7 +6,7 @@
 
 目标站点：**https://guoanze550-commits.github.io/xndf-great/**
 
-只有仓库已启用 Pages 且部署成功后，该地址才是可用游戏入口。当前云环境没有公开端口的分享工具，且网络策略阻止访问 GitHub API 和该 Pages 域名；在外部访问被放行前，不能把目标地址标记为已上线或已验证。
+V2 已上线：[运行 39049874611](https://github.com/guoanze550-commits/xndf-great/actions/runs/39049874611) 的 build、deploy、live validation 均通过，实际 HTTPS 页面、资源和 `build-info.json` 中的源提交已验证为 `925a2f3`。云端仍无法直接连接 Pages 域名，此处依据 Actions 中真实运行的线上校验和 Git 状态回执。
 
 ## 首次启用（仓库所有者只需做一次）
 

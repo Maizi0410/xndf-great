@@ -1,3 +1,14 @@
+# V2 / 0.2.0 课堂 Mac ZIP
+
+- [成功运行 39049874566](https://github.com/guoanze550-commits/xndf-great/actions/runs/39049874566)
+- [下载 Artifact 12106789164](https://github.com/guoanze550-commits/xndf-great/actions/runs/39049874566/artifacts/12106789164)
+- 内层 ZIP：`The-Permitted-World-0.2.0-classroom-macOS-Apple-Silicon-arm64.zip`
+- SHA-256：`3823a2b4ea4729ea064d24b1277bf6c2129565b8e66daf16bd460addb28b55ba`
+
+本次源提交 `925a2f3`。原生 ARM64 Mac 的应用构建、ad-hoc 签名/资源/ZIP 校验、上传以及屏蔽网络后的五段鼠标通关和本地模型合成视频推理均成功。登录 GitHub 下载外层 Artifact，解开后再解开内层 ZIP，运行 `.app`。真实课堂电脑首次安全提示与真人摄像头尚未实测。Artifact 保留 30 天，可通过原有工作流重新生成。
+
+---
+
 > 以下为 **V1 / 0.1.0 历史记录**，保留用于稳定版回退；不是 V2 验收或 V2 下载证明。当前结果见 [V2-ACCEPTANCE.md](V2-ACCEPTANCE.md)。
 
 # 从 GitHub 下载课堂 Mac ZIP

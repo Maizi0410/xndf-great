@@ -1,4 +1,4 @@
-> **当前开发版：V2.0 空间解谜（包版本 0.2.0）**。三组联动机构、五次视觉重合与同一场景中的高低回路。V1 已保留为 `v1.0-stable`。[V2 玩法、解答与工程说明](docs/V2.md) · [V2 验证记录](docs/V2-ACCEPTANCE.md)。
+> **当前版本：V2.0 空间解谜（包版本 0.2.0）**。三组联动机构、五次视觉重合与同一场景中的高低回路。V1 已保留为 `v1.0-stable`。[V2 玩法、解答与工程说明](docs/V2.md) · [V2 验证记录](docs/V2-ACCEPTANCE.md)。
 
 # 界限 / THE PERMITTED WORLD
 
@@ -12,15 +12,17 @@
 
 ## 课堂 Mac ZIP
 
+[V2 原生 Apple Silicon ZIP 下载](https://github.com/guoanze550-commits/xndf-great/actions/runs/39049874566/artifacts/12106789164)：0.2.0 `.app`、签名/ZIP/资源校验和原生 Mac 断网自动通关均已成功；真实课堂设备和摄像头仍需验收。
+
 保留 Pages、DMG 工作流，并继续使用独立 [Build classroom Mac ZIP](https://github.com/guoanze550-commits/xndf-great/actions/workflows/build-classroom-mac.yml)。相关 `main` 提交会自动构建，也可在 Actions 手动运行 `main`；成功后下载 `The-Permitted-World-Classroom-Mac-Apple-Silicon-arm64` Artifact。外层 Artifact ZIP 内含可再分发的 `.app` ZIP、校验值和自动验证报告。无需 Apple 开发者账户或 Secrets。
 
 Apple Silicon Mac 本机构建：`npm ci`、`npx --no-install install-electron`、`npm run classroom:mac`。输出到独立 `release-classroom/`，保留原 `release/` 和网页 `dist-web/`。运行 `npm run test:offline` 可在实际 Electron 中屏蔽所有 HTTP(S)/WebSocket，再验证本地模型推理与完整鼠标通关；该检查不等同于真实 Mac 断网验收。
 
 ## 在 Safari / Chrome 直接体验网页版
 
-无需等待 DMG。网页目标地址为 **https://guoanze550-commits.github.io/xndf-great/**，需要先启用 Pages 并成功部署；尚未核验公网可访问性时不能视为已上线。
+无需等待 DMG。网页版入口为 **https://guoanze550-commits.github.io/xndf-great/**。V2 已由 [运行 39049874611](https://github.com/guoanze550-commits/xndf-great/actions/runs/39049874611) 部署，线上提交号、脚本、样式、模型和 WASM 校验均通过。
 
-已新增独立的 [Deploy web game to GitHub Pages](https://github.com/guoanze550-commits/xndf-great/actions/workflows/deploy-pages.yml) 工作流，推送 `main` 后自动构建、验证和部署。首次请在 [Settings → Pages](https://github.com/guoanze550-commits/xndf-great/settings/pages) 将 Source 选择为 **GitHub Actions**；若首次运行因此失败，再手动 Run workflow。
+继续使用独立的 [Deploy web game to GitHub Pages](https://github.com/guoanze550-commits/xndf-great/actions/workflows/deploy-pages.yml) 工作流，推送 `main` 后自动构建、验证和部署。当前仓库已成功部署；新建副本首次启用和排错步骤见 `docs/WEB.md`。
 
 网页使用独立 `dist-web/` 与 `/xndf-great/` 子路径，桌面代码和 DMG 工作流保持不变。鼠标无需摄像头；手势只在 HTTPS 页面上按需申请权限，使用同源本地模型和 WASM。Mac Safari/Chrome 与真实摄像头尚须实机验收。[完整部署、验证与排错说明](docs/WEB.md)。
 
