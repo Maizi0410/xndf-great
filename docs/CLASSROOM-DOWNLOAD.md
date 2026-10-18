@@ -1,3 +1,19 @@
+# V2.2 / 0.2.2 课堂 Mac ZIP（当前版本）
+
+- [成功运行 39095862458](https://github.com/guoanze550-commits/xndf-great/actions/runs/39095862458)
+- [下载 Artifact 12123699406](https://github.com/guoanze550-commits/xndf-great/actions/runs/39095862458/artifacts/12123699406)
+- 内层 ZIP：`The-Permitted-World-0.2.2-classroom-macOS-Apple-Silicon-arm64.zip`
+- SHA-256：`11039de2e6541f1ccf86c76544fcb0d6e38bca8687bb0272b3c1e64fe3779876`
+- 源代码：[`5d80361`](https://github.com/guoanze550-commits/xndf-great/commit/5d803610d449e4c415992433a4176cc6272b27c4)
+
+这是实际原生 Apple Silicon 构建的新版本：ARM64 `.app`、ad-hoc 签名、ASAR/模型/WASM 完整性与 ZIP 解压校验成功；打包应用屏蔽网络后的五段鼠标通关、连接镜头状态和本地模型合成视频推理全部通过。真人摄像头、课堂 Mac 首次安装及系统安全提示尚未实测。
+
+登录 GitHub 下载外层 Artifact ZIP，解开后再解开内层课堂 ZIP，得到 `.app` 和课堂说明。供 Apple Silicon Mac 使用，不要求安装 Node.js；素材、模型与 WASM 都在应用中。Artifact 保留 30 天，过期可在 [Build classroom Mac ZIP](https://github.com/guoanze550-commits/xndf-great/actions/workflows/build-classroom-mac.yml) 选择 **Run workflow → main** 重新生成。
+
+验收细节与性能边界见 [V2.2-ACCEPTANCE.md](V2.2-ACCEPTANCE.md)。下方为旧版本历史记录，不是当前下载入口。
+
+---
+
 # V2 / 0.2.0 课堂 Mac ZIP
 
 - [成功运行 39049874566](https://github.com/guoanze550-commits/xndf-great/actions/runs/39049874566)

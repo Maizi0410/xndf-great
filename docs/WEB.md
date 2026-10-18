@@ -1,12 +1,12 @@
 # 网页版部署与体验
 
-网页版复用现有《界限》游戏，**不需要下载 DMG，也不需要 Electron**。当前 V2 在原项目中升级为三组机构、五次空间重合；Electron 与网页继续分别构建。
+网页版复用现有《界限》游戏，**不需要下载 DMG，也不需要 Electron**。当前 V2.2 保留三组机构、五次空间重合，增加多层遗迹、机构连接近景和进度同步拉远；Electron 与网页继续分别构建。
 
 ## HTTPS 入口
 
 目标站点：**https://guoanze550-commits.github.io/xndf-great/**
 
-V2 已上线：[运行 39049874611](https://github.com/guoanze550-commits/xndf-great/actions/runs/39049874611) 的 build、deploy、live validation 均通过，实际 HTTPS 页面、资源和 `build-info.json` 中的源提交已验证为 `925a2f3`。云端仍无法直接连接 Pages 域名，此处依据 Actions 中真实运行的线上校验和 Git 状态回执。
+V2.2 已上线：[运行 39095862471](https://github.com/guoanze550-commits/xndf-great/actions/runs/39095862471) 的 build、deploy、live validation 均通过，实际 HTTPS 页面、资源和 `build-info.json` 中的源提交已验证为 `5d80361`。云端仍无法直接连接 Pages 域名，此处依据 Actions 中真实运行的线上校验和 Git 状态回执。
 
 ## 首次启用（仓库所有者只需做一次）
 
