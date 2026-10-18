@@ -1,4 +1,6 @@
-> **当前版本：V2.0 空间解谜（包版本 0.2.0）**。三组联动机构、五次视觉重合与同一场景中的高低回路。V1 已保留为 `v1.0-stable`。[V2 玩法、解答与工程说明](docs/V2.md) · [V2 验证记录](docs/V2-ACCEPTANCE.md)。
+> **V2.2：多层遗迹与连接镜头（包版本 0.2.2）**。保持原五次空间跨越，新增推近、连接停留、人物行走回拉与低动态选项。[V2.2 说明](docs/V2.2.md) · [本轮实际验收与交付状态](docs/V2.2-ACCEPTANCE.md)。上一稳定版已保留为 `v2.1-stable`。
+
+> **V2.0 历史记录（包版本 0.2.0）**。三组联动机构、五次视觉重合与同一场景中的高低回路。V1 已保留为 `v1.0-stable`。[V2 玩法、解答与工程说明](docs/V2.md) · [V2 验证记录](docs/V2-ACCEPTANCE.md)。
 
 # 界限 / THE PERMITTED WORLD
 
@@ -6,13 +8,13 @@
 
 原创单场景第三人称正交视角艺术解谜游戏，Vite + TypeScript + Three.js + MediaPipe Hand Landmarker + Electron。三座冬日石岛、三根电线杆、一扇暖光门。玩家改变可行走的空间秩序，让人物从 I 经 II 抵达 III。
 
-当前定位是 **0.2.0 课堂主题作业**：网页优先保证鼠标通关，手势作为增强体验；Apple Silicon Mac 提供可通过 ZIP 分享的 `.app`，用于断网演示。不以商业发行、App Store、Developer ID 签名或公证为当前交付前提。
+当前定位是 **0.2.2 课堂主题作业**：网页优先保证鼠标通关，手势作为增强体验；Apple Silicon Mac 提供可通过 ZIP 分享的 `.app`，用于断网演示。不以商业发行、App Store、Developer ID 签名或公证为当前交付前提。
 
 **课堂请先看：[简洁中文使用说明](docs/CLASSROOM.md)**。展示步骤、网页入口、两个手势、鼠标备用和本地运行方式均在其中；[V2 验收记录](docs/V2-ACCEPTANCE.md)区分自动测试与真实设备验证。
 
 ## 课堂 Mac ZIP
 
-[V2 原生 Apple Silicon ZIP 下载](https://github.com/guoanze550-commits/xndf-great/actions/runs/39049874566/artifacts/12106789164)：0.2.0 `.app`、签名/ZIP/资源校验和原生 Mac 断网自动通关均已成功；真实课堂设备和摄像头仍需验收。
+[V2.0 历史 Apple Silicon ZIP 下载](https://github.com/guoanze550-commits/xndf-great/actions/runs/39049874566/artifacts/12106789164)：0.2.0 `.app`、签名/ZIP/资源校验和原生 Mac 断网自动通关均已成功；真实课堂设备和摄像头仍需验收。
 
 保留 Pages、DMG 工作流，并继续使用独立 [Build classroom Mac ZIP](https://github.com/guoanze550-commits/xndf-great/actions/workflows/build-classroom-mac.yml)。相关 `main` 提交会自动构建，也可在 Actions 手动运行 `main`；成功后下载 `The-Permitted-World-Classroom-Mac-Apple-Silicon-arm64` Artifact。外层 Artifact ZIP 内含可再分发的 `.app` ZIP、校验值和自动验证报告。无需 Apple 开发者账户或 Secrets。
 

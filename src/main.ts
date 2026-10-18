@@ -7,12 +7,12 @@ import { Soundscape } from "./game/audio";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
 <canvas id="world" aria-label="雪中的三座石质岛屿，悬空石阶在固定等距视角中重合"></canvas><div class="vignette"></div>
-<header><a class="wordmark" href="#" aria-label="界限"><span class="seal">界</span><span>THE PERMITTED WORLD<small>一场关于可能性的寓言</small></span></a><div class="header-right"><span class="edition">SPATIAL STUDY — V2.0</span><button id="sound" class="icon-button" aria-label="关闭声音">声 <span>ON</span></button><button id="restart" class="icon-button" aria-label="重新开始">↺</button></div></header>
+<header><a class="wordmark" href="#" aria-label="界限"><span class="seal">界</span><span>THE PERMITTED WORLD<small>一场关于可能性的寓言</small></span></a><div class="header-right"><span class="edition">SPATIAL STUDY — V2.2</span><button id="motion" class="icon-button" aria-pressed="false">镜头 <span>标准</span></button><button id="quality" class="icon-button">画质 <span>自动</span></button><button id="sound" class="icon-button" aria-label="关闭声音">声 <span>ON</span></button><button id="restart" class="icon-button" aria-label="重新开始">↺</button></div></header>
 <div class="world-caption"><i></i><span>北纬 60° · 无名水域</span><span class="caption-rule"></span><span>WINTER, WITHOUT END</span></div>
 <section id="intro" class="intro"><div class="eyebrow">AN EXPERIMENT IN BOUNDARIES</div><h1>界<span>限</span><sup>02</sup></h1><p class="intro-english">THE PERMITTED WORLD</p><div class="short-line"></div><p class="intro-copy">世界并非没有道路。<br>只是有些可能，尚未被允许。</p><button id="begin" class="primary">进入界限 <span>↗</span></button><p class="start-note">拖动以改变秩序 · 点击以允许前行</p><div class="intro-index"><span>01 / 01</span><span>单场景空间解谜 · 约 5–8 分钟</span></div></section>
 <aside id="journal" class="journal hidden"><div class="eyebrow">THE SHAPE OF PERMISSION</div><h2 id="chapter">借来的高度</h2><p id="narrative">不是把两岸拉近。<br>试着让断阶在眼前重合。</p><div class="journey"><span data-platform="A" class="current">I</span><i></i><span data-platform="L">西</span><i></i><span data-platform="B">II</span><i></i><span data-platform="U">东</span><i></i><span data-platform="B2">上</span><i></i><span data-platform="C">III</span></div><div class="location"><span id="location">起点</span><span id="phase">等待许可</span></div></aside>
 <div class="scene-note"><span class="note-cross">+</span><span>每一条被允许的路，<br>都是另一种可能的消失。</span></div>
-<section id="controls" class="controls hidden" aria-label="秩序控制装置"><div class="control-label"><span><i class="status-dot"></i> <span id="mechanism">中央回转轴</span></span><span id="angle-value">000°</span></div><div class="dial-row"><span class="endpoint">旋转</span><div class="range-wrap"><div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><input id="rotation" type="range" min="-80" max="80" step="1" value="0" aria-label="旋转空间机构"><div class="range-labels"><span>−80°</span><span>0</span><span>+80°</span></div></div><span class="endpoint">重合</span></div><div class="control-footer"><p id="hint">左右拖动，寻找电线的共鸣</p><button id="confirm" disabled>允许前行 <span>→</span></button></div><div class="control-help"><span id="combination">五次许可 · 三组机构</span><button id="help">观察提示</button></div><p id="observation" class="observation hidden"></p><div class="ice-meter"><i id="ice-progress"></i></div></section>
+<section id="controls" class="controls hidden" aria-label="秩序控制装置"><div class="control-label"><span><i class="status-dot"></i> <span id="mechanism">中央回转轴</span></span><span id="angle-value">000°</span></div><div class="dial-row"><span class="endpoint">旋转</span><div class="range-wrap"><div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><input id="rotation" type="range" min="-80" max="80" step="1" value="0" aria-label="旋转空间机构"><div class="range-labels"><span>−80°</span><span>0</span><span>+80°</span></div></div><span class="endpoint">重合</span></div><div class="control-footer"><p id="hint">左右拖动，寻找电线的共鸣</p><button id="confirm" disabled>允许前行 <span>→</span></button></div><button id="skip-connection" class="skip-connection hidden">加速凝结 <span>Space</span></button><div class="control-help"><span id="combination">五次许可 · 三组机构</span><button id="help">观察提示</button></div><p id="observation" class="observation hidden"></p><div class="ice-meter"><i id="ice-progress"></i></div></section>
 <footer><span>界限 © 2026</span><span class="footer-middle">ONLY ONE POSSIBILITY MAY EXIST.</span><button id="camera-toggle">◉ <span>启用手势</span></button></footer>
 <aside id="camera-panel" class="camera-panel hidden"><div class="camera-heading"><span>本机手势输入</span><button id="camera-hide" aria-label="隐藏预览">−</button></div><video id="camera" autoplay playsinline muted></video><p id="camera-status" role="status">摄像头只在本机处理，不上传、不录制。</p><div class="camera-actions"><button id="calibrate">重新校准</button><button id="camera-stop">关闭摄像头</button></div><small>张开手掌左右移动 · 捏合确认<br>鼠标始终可用</small></aside>
 <div id="toast" class="toast hidden" role="status"></div>
@@ -29,6 +29,7 @@ let started = false,
   finished = false,
   previousNode = rules.platform,
   previousAngle = rules.angle;
+let lastConfirmationAt=0;
 let toastTimer: ReturnType<typeof setTimeout>;
 function toast(text: string) {
   $("toast").textContent = text;
@@ -56,7 +57,7 @@ $("world").addEventListener("webglcontextlost", (e) => {
 });
 function confirm() {
   world.measure(rules);
-  if (rules.confirm()) audio.tone(220, 0.7, 0.2);
+  if (rules.confirm()) {lastConfirmationAt=performance.now();audio.tone(220, 0.7, 0.2);}
   else if (started && !rules.locked)
     toast("先让人物所在平台与下一座平台连通，再允许前行。");
 }
@@ -85,8 +86,9 @@ function reset() {
   $("camera-panel").classList.add("hidden");
   $("camera-toggle").textContent = "◉ 启用手势";
   rules.reset();
+  world.director.reset();
   finished = false,
-  previousNode = rules.platform,
+  previousNode = "C",
   previousAngle = rules.angle;
   previousPhase = "";
   previousChanges = 0;
@@ -158,6 +160,22 @@ $("calibrate").onclick = () => {
   toast("将手放在画面中央，张开手掌保持片刻。");
 };
 window.addEventListener("pagehide", () => hands.stop());
+let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+try { const saved=localStorage.getItem("permitted-motion");if(saved) reduced=saved==="reduced"; } catch {}
+function motionPreference() {
+  world.director.reduced=reduced;
+  $("motion").innerHTML=`镜头 <span>${reduced?"减少":"标准"}</span>`;
+  $("motion").setAttribute("aria-pressed",String(reduced));
+  $("motion").setAttribute("aria-label",reduced?"切换标准电影镜头":"减少镜头运动");
+}
+motionPreference();
+$("motion").onclick=()=>{reduced=!reduced;motionPreference();try{localStorage.setItem("permitted-motion",reduced?"reduced":"standard");}catch{}};
+$("quality").onclick=()=>{
+  world.setQuality(world.quality==="auto"?"high":"auto");
+  $("quality").innerHTML=`画质 <span>${world.quality==="auto"?"自动":"高"}</span>`;
+};
+$("skip-connection").onclick=()=>rules.accelerateConnection();
+window.addEventListener("keydown",e=>{if(e.code==="Space" && rules.phase==="connecting" && (!(e.target instanceof HTMLButtonElement) || e.target.id==="confirm" || e.target.id==="skip-connection")){e.preventDefault();rules.accelerateConnection();}});
 const CHAPTERS = {
   A: ["借来的高度", "不是把两岸拉近。<br>试着让断阶在眼前重合。", "看西侧悬阶的两个圆形端点。中央轴控制靠近你的半段；让雪沿阶边汇聚。"],
   L: ["折回中庭", "另一半阶梯保留了方向，<br>却还没有保留去处。", "现在拖动的是西侧折叠阶。圆点碰到还不够，两段石阶的延伸方向也必须一致。"],
@@ -177,10 +195,12 @@ function frame(now: number) {
   const dt = Math.min(elapsed, 0.1);
   previous = now;
   if (document.hidden) return;
+  if(started) hands.update(now);
+  world.prepareCamera(dt,rules);
   if (started) {
-    hands.update(now);
     world.measure(rules);
-    for (let remaining = elapsed; remaining > 0; remaining -= 0.05)
+    const ruleElapsed=rules.phase==="connecting"?Math.min(elapsed,Math.max(0,(now-lastConfirmationAt)/1000)):elapsed;
+    for (let remaining = ruleElapsed; remaining > 0; remaining -= 0.05)
       rules.update(Math.min(0.05, remaining));
   }
   world.update(dt, rules, started);
@@ -203,8 +223,9 @@ function frame(now: number) {
   }
   if (Math.abs(previousAngle-rules.angle)>.6 && !rules.locked) audio.rotate(now/1000,rules.proximity);
   previousAngle=rules.angle;
+  $("skip-connection").classList.toggle("hidden",rules.phase!=="connecting");
   $("hint").textContent =
-    rules.phase === "walking"
+    rules.phase === "connecting" ? "冰晶正在封合接缝 · 可加速演出" : rules.phase === "walking"
       ? "人物通行中 · 边界已锁定"
       : rules.phase === "forming"
         ? "旧的可能正在消失，新的道路正在凝结"
@@ -221,6 +242,7 @@ function frame(now: number) {
     idle: "等待许可",
     forming: "重写边界",
     ready: "道路凝结",
+    connecting: "连接确认",
     walking: "正在通行",
     ending: "抵达",
     complete: "结束",
@@ -232,7 +254,7 @@ function frame(now: number) {
       el.classList.toggle("current", el.dataset.platform === rules.platform),
     );
   if (rules.phase !== previousPhase) {
-    if (rules.phase === "ready") audio.freeze();
+    if (rules.phase === "connecting") audio.freeze();
     if (rules.phase === "ending") {
       hands.stop();
       $("camera-panel").classList.add("hidden");
@@ -259,6 +281,11 @@ function frame(now: number) {
   $("app").dataset.crossings = String(rules.traversed.length);
   $("app").dataset.configuration = JSON.stringify(rules.config);
   $("app").dataset.alignment = JSON.stringify(rules.alignments);
-  $("app").dataset.render = JSON.stringify(world.frameMetrics);
+  $("app").dataset.render = JSON.stringify({...world.frameMetrics,balanced:world.balanced});
+  $("app").dataset.cameraMode=world.director.mode;
+  $("app").dataset.cameraZoom=world.camera.zoom.toFixed(5);
+  $("app").dataset.camera=JSON.stringify(world.director.snapshot());
+  $("app").dataset.layers=JSON.stringify(world.architecture.levels);
+  $("app").dataset.travel=rules.travel.toFixed(4);
 }
 requestAnimationFrame(frame);

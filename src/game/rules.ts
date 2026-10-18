@@ -1,6 +1,6 @@
 import { ACTIVE, CONNECTIONS, INITIAL, OUTGOING, clamp, type Alignment, type Configuration, type Connection, type Mechanism, type NodeId } from "./puzzle";
 export { clamp } from "./puzzle";
-export type Phase = "idle" | "forming" | "ready" | "walking" | "ending" | "complete";
+export type Phase = "idle" | "forming" | "ready" | "connecting" | "walking" | "ending" | "complete";
 export class WorldRules {
   platform: NodeId = "A";
   phase: Phase = "idle";
@@ -12,10 +12,13 @@ export class WorldRules {
   dwell = 0; travel = 0; endTime = 0; changes = 0; elapsed = 0; stageTime = 0;
   traversed: string[] = [];
   walkingConnection: Connection | null = null;
+  connectionTime = 0;
+  connectionDuration = 1.05;
+  private connectionStart: Configuration = {...INITIAL};
   get active(): Mechanism { return ACTIVE[this.platform]; }
   get angle() { return this.config[this.active]; }
   get next() { return OUTGOING[this.platform]; }
-  get locked() { return ["walking","ending","complete"].includes(this.phase); }
+  get locked() { return ["connecting","walking","ending","complete"].includes(this.phase); }
   get proximity() { return this.alignments.find(a => a.id === this.next?.id)?.proximity ?? 0; }
   get canWalk() {
     return this.phase === "ready" && this.route === this.next?.id && this.alignments.some(a => a.id === this.route && a.legal) && this.growth[this.route!] === 1;
@@ -42,14 +45,28 @@ export class WorldRules {
   confirm() {
     if (!this.canWalk) return false;
     this.walkingConnection = this.next!;
-    Object.assign(this.config, this.walkingConnection.controls);
-    this.phase = "walking"; this.travel = 0;
+    this.connectionStart={...this.config};
+    this.phase = "connecting"; this.connectionTime=0; this.connectionDuration=1.05; this.travel = 0;
+    return true;
+  }
+  accelerateConnection() {
+    if(this.phase!=="connecting") return false;
+    this.connectionDuration=Math.min(this.connectionDuration,Math.max(.32,this.connectionTime+.14));
     return true;
   }
   reset() { Object.assign(this,new WorldRules()); }
   update(rawDt: number) {
     const dt = clamp(rawDt,0,.1);
     this.elapsed += dt; this.stageTime += dt;
+    if(this.phase === "connecting") {
+      this.connectionTime=Math.min(this.connectionDuration,this.connectionTime+dt);
+      const t=clamp(this.connectionTime/.2,0,1),e=t*t*(3-2*t);
+      for(const [key,target] of Object.entries(this.walkingConnection!.controls)) {
+        const k=key as Mechanism;this.config[k]=this.connectionStart[k]+(target!-this.connectionStart[k])*e;
+      }
+      if(this.connectionTime>=this.connectionDuration) this.phase="walking";
+      return;
+    }
     if (this.phase === "walking") {
       this.travel = Math.min(1,this.travel + dt/8);
       if (this.travel >= 1) {

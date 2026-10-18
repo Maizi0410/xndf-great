@@ -94,7 +94,7 @@ export function assessConnection(c: Connection, pose: BridgePose, config: Config
   const continuity = incoming.dot(outgoing);
   const distance = a.distanceTo(b);
   const scale = project(NODES.B.clone().add(new T.Vector3(1,0,0))).distanceTo(project(NODES.B));
-  const tolerance = Math.max(3, scale * .19);
+  const tolerance = Math.max(1e-6, scale * .19);
   const proximity = clamp(1 - distance / (tolerance * 7), 0, 1);
   const permitted = Object.entries(c.controls).every(([k,v]) => Math.abs(config[k as Mechanism] - v!) <= 8);
   let reason: RejectReason = distance > tolerance ? "gap" : continuity < .86 ? "direction" : !permitted ? "configuration" : c.from !== node || pose.left.anchor.distanceTo(NODES[node]) > .65 ? "unreachable" : "aligned";

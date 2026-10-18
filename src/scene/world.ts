@@ -1,5 +1,8 @@
 import * as T from "three";
 import { beveledBox } from "./geometry";
+import { CinematicCamera } from "./cinematic-camera";
+import { buildArchitecture, type Architecture } from "./architecture";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
@@ -19,6 +22,17 @@ export class WinterWorld {
   camera: T.OrthographicCamera;
   renderer: T.WebGLRenderer;
   composer: EffectComposer;
+  director: CinematicCamera;
+  architecture: Architecture;
+  bloom: UnrealBloomPass;
+  quality: "auto" | "high" = "auto";
+  balanced = false;
+  private slowFrames = 0;
+  private frameCost = 16;
+  private lastFrame = 0;
+  private reflectionEvery = 4;
+  crystals = new T.InstancedMesh(new T.OctahedronGeometry(.055,0),new T.MeshStandardMaterial({color:0xb7edf4,emissive:0x2a5e69,emissiveIntensity:.4,metalness:.15,roughness:.24,transparent:true,opacity:.8,depthWrite:false}),64);
+  private crystalDummy = new T.Object3D();
   character = new T.Group();
   body = new T.Group();
   legs: T.Group[] = [];
@@ -81,6 +95,8 @@ export class WinterWorld {
     this.scene.background = new T.Color(0x0b1c28);
     this.scene.fog = new T.FogExp2(0x102633, 0.025);
     this.camera = createPuzzleCamera();
+    this.director=new CinematicCamera(this.camera);
+    this.director.reset();
     this.scene.add(new T.HemisphereLight(0xb2d9ec, 0x1e323e, 2));
     const moon = new T.DirectionalLight(0xc6dfef, 3.3);
     moon.position.set(-8, 18, 4);
@@ -130,7 +146,7 @@ export class WinterWorld {
     this.water = new T.ShaderMaterial({
       uniforms: {
         time: { value: 0 },
-        eye: { value: this.camera.position },
+        viewRay: { value: VIEW_RAY },
         gate: { value: new T.Vector2(portal.x, portal.z) },
         permission: { value: 0 },
       },
@@ -142,8 +158,13 @@ export class WinterWorld {
     const mirror = new Reflector(new T.PlaneGeometry(160,160), { color: 0x8ba2ac, textureWidth: 384, textureHeight: 384, clipBias: .003 });
     const reflect = mirror.onBeforeRender.bind(mirror);
     mirror.onBeforeRender = (...args) => {
-      if(this.reflectionFrame++ % 4 === 0) reflect(...args);
+      if(this.reflectionFrame++ % this.reflectionEvery === 0) reflect(...args);
     };
+    // Render real submerged masonry through two restrained transparent layers.
+    const mirrorMaterial=mirror.material as T.ShaderMaterial;
+    mirrorMaterial.transparent=true;mirrorMaterial.depthWrite=false;
+    mirrorMaterial.fragmentShader=mirrorMaterial.fragmentShader.replace("gl_FragColor = vec4( blendOverlay( base.rgb, color ), 1.0 );","gl_FragColor = vec4( blendOverlay( base.rgb, color ), 0.42 );");
+    mirror.renderOrder=1;
     mirror.rotation.x = -Math.PI/2;
     mirror.position.y = -.36;
     this.scene.add(mirror);
@@ -151,6 +172,7 @@ export class WinterWorld {
       new T.PlaneGeometry(180, 180, 64, 64),
       this.water,
     );
+    water.renderOrder=2;
     water.rotation.x = -Math.PI / 2;
     water.position.y = -0.35;
     this.scene.add(water);
@@ -159,6 +181,11 @@ export class WinterWorld {
     this.makeLanding(POINTS.B2, "上");
     for (const definition of CONNECTIONS) this.makeBridge(definition);
     this.makeRuins();
+    this.architecture=buildArchitecture(this.scene,{stone:this.detailedStone,snow:this.snowMat,metal:this.metal,warm:this.warm});
+    this.blockers.push(...this.architecture.occluders);
+    this.crystals.instanceMatrix.setUsage(T.DynamicDrawUsage);
+    this.crystals.frustumCulled=false;
+    this.scene.add(this.crystals);
     this.createCharacter();
     this.scene.add(this.character);
     this.character.position.copy(POINTS.A);
@@ -189,8 +216,8 @@ export class WinterWorld {
       new T.ShaderMaterial({
         transparent: true,
         depthWrite: false,
-        uniforms: { pixelRatio: { value: this.renderer.getPixelRatio() } },
-        vertexShader: `attribute float size;uniform float pixelRatio;varying float alpha;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);alpha=clamp(1.-(-mv.z)/85.,.08,.6)*(size>5.?.48:1.);gl_PointSize=size*pixelRatio;gl_Position=projectionMatrix*mv;}`,
+        uniforms: { pixelRatio: { value: this.renderer.getPixelRatio() }, closeup:{value:0} },
+        vertexShader: `attribute float size;uniform float pixelRatio;uniform float closeup;varying float alpha;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);alpha=clamp(1.-(-mv.z)/85.,.08,.6)*(size>5.0 ? mix(0.48,0.12,closeup) : 1.0);gl_PointSize=size*pixelRatio;gl_Position=projectionMatrix*mv;}`,
         fragmentShader: `varying float alpha;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(.82,.9,.94,alpha*smoothstep(.5,.05,d));}`,
       }),
     );
@@ -231,9 +258,8 @@ export class WinterWorld {
     }
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.composer.addPass(
-      new UnrealBloomPass(new T.Vector2(1, 1), 0.22, 0.5, 1.2),
-    );
+    this.bloom=new UnrealBloomPass(new T.Vector2(1,1),.22,.5,1.2);
+    this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
     this.resize();
   }
@@ -521,6 +547,19 @@ export class WinterWorld {
       ribbon.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(right,forward,right.clone().cross(forward)));
       (ribbon.material as T.ShaderMaterial).side=T.DoubleSide;
       group.add(ribbon); ice.push(ribbon);
+      const fittings:T.BufferGeometry[]=[];
+      const q=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,0,1),delta.clone().normalize());
+      for(const edge of [-1,1]) {
+        const rail=beveledBox(.055,.16,.45,.012);
+        rail.translate(edge*.415,-.07,-.16);fittings.push(rail);
+        for(const z of [-.31,-.08]) {
+          const bolt=new T.CylinderGeometry(.025,.025,.025,6).toNonIndexed();bolt.translate(edge*.405,.023,z);fittings.push(bolt);
+        }
+      }
+      const shoe=beveledBox(.8,.06,.16,.012);shoe.translate(0,-.07,.045);fittings.push(shoe);
+      const merged=mergeGeometries(fittings);if(!merged) throw new Error("Bridge hardware geometry could not merge");merged.applyQuaternion(q);merged.translate(delta.x,delta.y,delta.z);
+      fittings.forEach(g=>g.dispose());
+      const hardware=new T.Mesh(merged,this.metal);hardware.castShadow=true;group.add(hardware);
       if(definition.decoy === "direction" && index===0) group.visible=false;
     }
     const glow=this.warm.clone(); glow.emissiveIntensity=.05;
@@ -553,6 +592,26 @@ export class WinterWorld {
       dummy.rotation.z=Math.PI; dummy.scale.y=.5+(i%5)*.19; dummy.updateMatrix(); icicles.setMatrixAt(i,dummy.matrix);
     }
     this.scene.add(icicles);
+  }
+  prepareCamera(dt:number,r:WorldRules) {
+    this.resize();
+    const connection=r.locked?r.walkingConnection:r.next;
+    const pose=connection?bridgePose(connection,r.config):null;
+    const focus=pose?[pose.left.tip,pose.right.tip,pose.left.anchor.clone().lerp(pose.left.tip,.55),pose.right.anchor.clone().lerp(pose.right.tip,.55)]:[];
+    const actor=r.phase==="walking" && connection && pose?travelPoint(connection,pose,r.travel):POINTS[r.platform];
+    this.director.update(dt,{phase:r.phase,node:r.platform,proximity:r.proximity,legal:r.alignments.some(a=>a.id===r.next?.id && a.legal),focus,actor,travel:r.travel,endTime:r.endTime},this.width,this.height);
+  }
+  setQuality(quality:"auto"|"high") {
+    this.quality=quality;
+    if(quality==="high") this.applyBalanced(false);
+  }
+  private applyBalanced(balanced:boolean) {
+    if(this.balanced===balanced) return;
+    this.balanced=balanced;this.bloom.enabled=!balanced;this.reflectionEvery=balanced?8:4;
+    this.snow.geometry.setDrawRange(0,balanced?1400:2100);
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio,balanced?1.1:1.5));
+    this.renderer.setSize(this.width,this.height);this.composer.setPixelRatio(this.renderer.getPixelRatio());this.composer.setSize(this.width,this.height);
+    (this.snow.material as T.ShaderMaterial).uniforms.pixelRatio.value=this.renderer.getPixelRatio();
   }
   measure(r: WorldRules) {
     this.resize();
@@ -632,6 +691,12 @@ export class WinterWorld {
   }
   update(dt: number, r: WorldRules, started: boolean) {
     this.time += dt;
+    const now=performance.now();
+    if(this.lastFrame) this.frameCost=T.MathUtils.lerp(this.frameCost,Math.min(300,now-this.lastFrame),.08);
+    this.lastFrame=now;
+    if(this.quality==="auto" && !this.balanced && this.frameCost>45) {
+      if(++this.slowFrames>=45) this.applyBalanced(true);
+    }
     this.resize();
     this.water.uniforms.time.value = this.time;
     const permission=Math.max(0,...Object.values(r.growth));
@@ -639,6 +704,8 @@ export class WinterWorld {
     if(Math.abs(r.config.axis-this.lastAngle)>.12 || this.lastAngle===999) {
       this.lastAngle=r.config.axis; this.updateWires();
     }
+    const seal=r.phase==="connecting"?T.MathUtils.smoothstep(r.connectionTime,.2,.7):r.phase==="walking"?1:0;
+    for(const gear of this.architecture.gears) gear.object.rotation.z=T.MathUtils.degToRad(r.config[gear.mechanism])*gear.ratio;
     for(const bridge of this.bridges) {
       const pose=bridgePose(bridge.definition,r.config);
       bridge.halves[0].rotation.y=pose.left.rotation;
@@ -646,12 +713,13 @@ export class WinterWorld {
       const growth=r.growth[bridge.definition.id];
       for(const mesh of bridge.ice) {
         (mesh.material as T.ShaderMaterial).uniforms.growth.value=growth;
+        (mesh.material as T.ShaderMaterial).uniforms.seal.value=r.walkingConnection?.id===bridge.definition.id?seal:0;
         mesh.visible=growth>.001;
       }
       bridge.marker.position.copy(pose.left.tip).y+=.04;
       bridge.target.position.copy(pose.right.tip).y+=.04;
       const alignment=r.alignments.find(a=>a.id===bridge.definition.id);
-      bridge.glow.emissiveIntensity=.08+(alignment?.proximity??0)*.5+growth*2;
+      bridge.glow.emissiveIntensity=.08+(alignment?.proximity??0)*.5+growth*(1.1+seal*1.2);
       bridge.target.visible=bridge.definition.from===r.platform || growth>.01;
       bridge.marker.visible=bridge.target.visible && bridge.definition.decoy!=="direction";
       // Keep topological feedback on the same actual bridge geometry.
@@ -692,17 +760,36 @@ export class WinterWorld {
       );
       this.character.rotation.y = Math.PI;
     }
+    if(r.phase==="connecting") {
+      const p=Math.min(1,r.connectionTime/r.connectionDuration);
+      this.body.rotation.x=-Math.sin(p*Math.PI)*.035;
+      this.body.position.y=.4-Math.sin(p*Math.PI)*.018;
+    } else this.body.rotation.x*=Math.exp(-dt*8);
     this.character.position.copy(pos);
     const end = r.phase === "ending" || r.phase === "complete";
     this.doorLight.intensity = end ? 13 + r.endTime * 7 : 13;
     this.character.scale.setScalar(
       end ? Math.max(0, 1 - (r.endTime - 2) / 2) : 1,
     );
-    const pull = end ? 1 + r.endTime * 0.018 : started ? 1 : 1.045;
-    this.camera.zoom = end ? T.MathUtils.damp(this.camera.zoom, 1 / pull, 1.2, dt) : 1;
-    this.camera.updateProjectionMatrix();
+    (this.snow.material as T.ShaderMaterial).uniforms.closeup.value=T.MathUtils.clamp((this.camera.zoom-1)/.46,0,1);
+    const crystalConnection=r.walkingConnection && r.growth[r.walkingConnection.id]>.01?r.walkingConnection:r.next;
+    this.crystals.visible=!!crystalConnection && (seal>0 || permission>.2);
+    if(crystalConnection && this.crystals.visible) {
+      const pose=bridgePose(crystalConnection,r.config),dummy=this.crystalDummy;
+      for(let i=0;i<64;i++) {
+        const half=i<32?pose.left:pose.right,k=i%32;
+        const direction=half.anchor.clone().sub(half.tip).normalize(),side=direction.clone().cross(T.Object3D.DEFAULT_UP).normalize();
+        const progress=(k%16)/16;
+        dummy.position.copy(half.tip).addScaledVector(direction,progress*Math.min(half.tip.distanceTo(half.anchor),1.9)).addScaledVector(side,(k%2?1:-1)*.32);dummy.position.y+=.055;
+        dummy.rotation.set(i*.8,i*.3,i*.5);
+        const size=Math.max(.001,(seal>0?Math.min(1,Math.max(0,(seal-progress)*8)):permission*.18));
+        dummy.scale.set(size*.6,size*(1+(k%3)*.5),size*.6);dummy.updateMatrix();this.crystals.setMatrixAt(i,dummy.matrix);
+      }
+      this.crystals.instanceMatrix.needsUpdate=true;
+    }
     const arr = this.snow.geometry.attributes.position.array as Float32Array,
-      field = end ? 0 : r.proximity;
+      field = end ? 0 : T.MathUtils.damp(this.field.userData.strength??0,r.proximity,4,dt);
+    this.field.userData.strength=field;
     const snowPose = r.next ? bridgePose(r.next,r.config) : null;
     for (let i = 0; i < this.snowSpeed.length; i++) {
       const j = i * 3,
@@ -715,7 +802,7 @@ export class WinterWorld {
         ((((this.snowBase[j + 1] - this.time * s) % 22) + 22) % 22) - 0.4;
       arr[j + 2] = this.snowBase[j + 2] + Math.cos(this.time * 0.21 + i) * 0.35;
       if (i % 16 === 0 && this.wires.length) {
-        const path=(this.wires[i%this.wires.length].geometry as T.TubeGeometry).parameters.path;
+        const path=(this.wires[Math.floor(i/16)%this.wires.length].geometry as T.TubeGeometry).parameters.path;
         const p=path.getPoint((i%71)/71);
         arr[j]=T.MathUtils.lerp(arr[j],p.x,field*.85);
         arr[j+1]=T.MathUtils.lerp(arr[j+1],p.y+.06,field*.85);

@@ -72,12 +72,33 @@ test("mouse completes the entire offline world, even after camera denial", async
     await dragTo(step.angle,step.mechanism);
     await expect(page.locator("#confirm")).toBeEnabled({timeout:25000});
     await expect(page.locator("#app")).toHaveAttribute("data-route",step.edge);
-    await page.screenshot({path:`test-results/v2-${i+1}-${step.edge}.png`});
+    await expect(page.locator("#app")).toHaveAttribute("data-camera-mode","CONNECTION_HOLD");
+    await expect.poll(async()=>Number(await page.locator("#app").getAttribute("data-camera-zoom"))).toBeGreaterThan(1.3);
+    const focusedZoom=Number(await page.locator("#app").getAttribute("data-camera-zoom"));
+    await page.screenshot({path:`test-results/v22-${i+1}-${step.edge}-focus.png`});
+    // Observe the real short-lived DOM phase before clicking. A remote browser
+    // may finish a one-second hold before the next assertion reaches it.
+    const monitor=await page.evaluateHandle(()=>{
+      const app=document.getElementById("app")!;
+      const seen={phases:[app.dataset.phase],modes:[app.dataset.cameraMode]};
+      const observer=new MutationObserver(()=>{
+        if(seen.phases.at(-1)!==app.dataset.phase) seen.phases.push(app.dataset.phase);
+        if(seen.modes.at(-1)!==app.dataset.cameraMode) seen.modes.push(app.dataset.cameraMode);
+      });
+      observer.observe(app,{attributes:true,attributeFilter:["data-phase","data-camera-mode"]});
+      return {seen,observer};
+    });
     await page.locator("#confirm").click();
     await expect(page.locator("#rotation")).toBeDisabled();
+    await expect.poll(()=>monitor.evaluate(m=>m.seen.phases)).toContain("connecting");
+    await expect(page.locator("#app")).toHaveAttribute("data-camera-mode","TRAVERSAL_PULLBACK",{timeout:6000});
+    await expect.poll(async()=>Number(await page.locator("#app").getAttribute("data-camera-zoom")),{timeout:10000}).toBeLessThan(focusedZoom-.15);
     await page.mouse.move(800,600);await page.mouse.down();await page.mouse.move(1100,600);await page.mouse.up();
     await expect(page.locator("#app")).toHaveAttribute("data-platform",step.to,{timeout:40000});
     await expect(page.locator("#app")).toHaveAttribute("data-crossings",String(i+1));
+    if(i<4) await expect(page.locator("#app")).toHaveAttribute("data-camera-mode",/OVERVIEW/);
+    expect(await monitor.evaluate(m=>m.seen.modes)).toContain("TRAVERSAL_PULLBACK");
+    await monitor.evaluate(m=>m.observer.disconnect());await monitor.dispose();
   }
   await expect(page.locator("#ending")).toBeVisible({ timeout: 40000 });
   await expect(page.locator("#app")).toHaveAttribute("data-platform", "C");
@@ -140,4 +161,20 @@ test("real local MediaPipe initializes and infers on a synthetic camera stream",
   await expect(page.locator("#camera")).toHaveJSProperty("readyState", 4);
   await page.locator("#camera-stop").click();
   expect(errors).toEqual([]);
+});
+
+
+test("reduced-motion close-up is real, remains playable and restores standard framing",async({page})=>{
+ await page.emulateMedia({reducedMotion:"reduce"});await page.goto("./");await page.locator("#begin").click();
+ await expect(page.locator("#motion")).toHaveAttribute("aria-pressed","true");
+ const slider=page.locator("#rotation"),b=await slider.boundingBox();if(!b) throw new Error("Missing dial");
+ await page.mouse.click(b.x+4.5+(b.width-9)*24/160,b.y+b.height/2);
+ await expect(page.locator("#confirm")).toBeEnabled({timeout:20000});
+ await expect.poll(async()=>Number(await page.locator("#app").getAttribute("data-camera-zoom"))).toBeGreaterThan(1.03);
+ expect(Number(await page.locator("#app").getAttribute("data-camera-zoom"))).toBeLessThan(1.16);
+ await page.locator("#motion").click();await expect(page.locator("#motion")).toHaveAttribute("aria-pressed","false");
+ await expect.poll(async()=>Number(await page.locator("#app").getAttribute("data-camera-zoom"))).toBeGreaterThan(1.32);
+ await expect(page.locator("#confirm")).toBeEnabled();
+ await page.locator("#confirm").click();await expect(page.locator("#app")).toHaveAttribute("data-platform","L",{timeout:30000});
+ await expect(page.locator("#app")).toHaveAttribute("data-camera-mode",/OVERVIEW/);
 });

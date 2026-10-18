@@ -66,9 +66,11 @@ describe("V2 permission topology",()=>{
    r.rotate(angle);advance(r,.3);expect(r.confirm()).toBe(false);
    advance(r,3.2);expect(r.route).toBe(id);expect(r.confirm()).toBe(true);
    expect(r.confirm()).toBe(false);
+   expect(r.phase).toBe("connecting");advance(r,1.1);
+   expect(r.phase).toBe("walking");
    const config={...r.config};
-   for(let i=0;i<480;i++){r.rotate(0);advance(r,1/60);expect(r.config).toEqual(config);}
-   advance(r,.1);
+   for(let i=0;i<450;i++){r.rotate(0);advance(r,1/60);expect(r.config).toEqual(config);}
+   advance(r,.6);
   }
   expect(r.platform).toBe("C");expect(r.traversed).toEqual(solution.map(s=>s[2]));
   expect(r.config).toEqual({axis:-22,stairs:34,crown:-38});
@@ -122,10 +124,21 @@ describe("toleranced hand input",()=>{
   for(const [node,angle] of solution) {
    expect(r.platform).toBe(node);
    r.rotate(angle+.5);advance(r,4);expect(r.confirm()).toBe(true);
+   advance(r,1.1);
    const controls=r.walkingConnection!.controls;
    for(const [key,value] of Object.entries(controls)) expect(r.config[key as keyof Configuration]).toBe(value);
    advance(r,8.1);
   }
   expect(r.platform).toBe("C");
  });
+});
+
+
+it("keeps the character on its safe node during sealing, locks input and safely accelerates repeat shows",()=>{
+ const r=new WorldRules();r.rotate(-55.5);advance(r,4);expect(r.confirm()).toBe(true);
+ expect(r.phase).toBe("connecting");expect(r.travel).toBe(0);
+ const before=r.config.axis;r.rotate(0);expect(r.config.axis).toBe(before);
+ advance(r,.1);expect(r.config.axis).toBeGreaterThan(-56);expect(r.config.axis).toBeLessThan(before);
+ expect(r.accelerateConnection()).toBe(true);advance(r,.3);expect(r.phase).toBe("walking");expect(r.config.axis).toBe(-56);
+ expect(r.accelerateConnection()).toBe(false);
 });

@@ -6,7 +6,7 @@
 
 ## 两种体验方式
 
-- **网页版（Mac / Windows）**：https://guoanze550-commits.github.io/xndf-great/ 。需要网络和已成功部署的 GitHub Pages。当前云端无法检查公网部署状态，课前请用课堂网络实际打开确认。
+- **网页版（Mac / Windows）**：https://guoanze550-commits.github.io/xndf-great/ 。需要网络和已成功部署的 GitHub Pages。最新部署和验证结果见仓库 `docs/V2.2-ACCEPTANCE.md`；课前请用课堂网络实际打开确认。
 - **本地断网版（Apple Silicon Mac）**：解压课堂 ZIP，打开其中的 `The Permitted World.app`。可先复制到「应用程序」或本机文件夹；运行时不需要安装 Node.js、不需要服务器，也不需要联网。
 
 系统要求：网页使用支持 WebGL 2、WebAssembly 的现代 Safari、Chrome 或 Edge，建议开启硬件加速；本地版需要 **M1 或更新芯片、macOS 13 或更高版本**。Windows 使用网页版，本次不提供 Windows 本地应用。
@@ -17,6 +17,8 @@
 2. 拖动场景或底部刻度，观察悬空石阶的端点和延伸方向；雪沿阶边汇聚，冰晶凝结后点击「允许前行」。
 3. 依次经过 **A→西阶→B 中庭→东廊→B 上庭→C**。所在位置会决定当前操纵的是中央轴、西阶还是高处回廊；其他机构保留上次方向。中央轴必须重复调整，旧路随之消失。
 4. 端点碰到不一定能走：折返方向和远处无入口的桥都是误导。需要时点「观察提示」。行走中不能旋转；右上角可以重开和关闭声音。完整展示者解答见 [V2.md](V2.md)。
+
+镜头会在桥端接近时推近，确认后停留约一秒展示冰晶，角色起步后拉远。可在右上角切换「减少镜头运动」；重复演出可用「加速凝结」或空格压缩。完整说明见 [V2.2.md](V2.2.md)。
 
 ## 两个手势（增强体验）
 
@@ -35,7 +37,7 @@
 
 先解开 GitHub 的外层 Artifact ZIP，再解开里面的：
 
-`The-Permitted-World-0.2.0-classroom-macOS-Apple-Silicon-arm64.zip`
+`The-Permitted-World-0.2.2-classroom-macOS-Apple-Silicon-arm64.zip`
 
 其中包含 `.app`、本说明、资源许可及验证信息。工作流不需要 Apple 开发者账户或任何签名密钥，只使用本机 ad-hoc 签名；未做 Developer ID 签名或公证，系统仍可能出现安全提示。仅对可信课堂包按「系统设置 → 隐私与安全性」提供的步骤处理，不关闭系统整体安全保护；**课前务必在演示 Mac 上实际启动并断网通关一次**。
 
@@ -49,4 +51,4 @@
 4. **可选**：重新开始，演示张开手掌和捏合。识别不稳时立即换回鼠标，不影响展示。
 5. **收尾**：展示结局文字，讨论「谁决定了可以走的方向」。
 
-验证边界：合成视频推理不代表真实摄像头测试；Linux 自动通关不代表 Mac / Windows 实机验收。当前真实结果见仓库 `docs/CLASSROOM-ACCEPTANCE.md`。
+验证边界：合成视频推理不代表真实摄像头测试；Linux 自动通关不代表 Mac / Windows 实机验收。当前真实结果见仓库 `docs/V2.2-ACCEPTANCE.md`。

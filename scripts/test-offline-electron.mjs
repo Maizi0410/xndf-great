@@ -97,8 +97,10 @@ try {
   }
   for(const [angle,node] of [[-56,"L"],[34,"B"],[52,"U"],[-38,"B2"],[-22,"C"]]) {
     await selectRoad(angle);
+    await expect(window.locator("#app")).toHaveAttribute("data-camera-mode","CONNECTION_HOLD");
     await window.locator("#confirm").click();
     await expect(window.locator("#rotation")).toBeDisabled();
+    await expect(window.locator("#app")).toHaveAttribute("data-camera-mode","TRAVERSAL_PULLBACK",{timeout:6000});
     await expect(window.locator("#app")).toHaveAttribute("data-platform",node,{timeout:45000});
   }
   await expect(window.locator("#ending")).toBeVisible({timeout:20000});
@@ -120,7 +122,7 @@ try {
       : "development Electron with production dist",
     network: "HTTP, HTTPS and WebSocket blocked before page reload",
     externalRequests: blocked.length,
-    mouseJourney: "A→L→B→U→B2→C, five projection crossings and ending passed",
+    mouseJourney: "A→L→B→U→B2→C, five projection crossings, confirmation holds, cinematic pullbacks and ending passed",
     localModelInference: "synthetic video passed",
     physicalCamera: "not tested",
     physicalMac: "not tested by this automated check",

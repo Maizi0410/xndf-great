@@ -790,3 +790,8 @@ video {
 .observation { margin:0 0 13px; color:#acbdc4; font-size:11px; line-height:1.9; }
 .ticks i:nth-child(2), .ticks i:nth-child(8) { background:#8ea7b633; height:7px; }
 @media(max-width:650px) { .journey,.location {width:150px;} .journey span{width:20px;height:20px;font-size:8px;} .journal p{max-width:180px;} }
+/* V2.2 keeps focus endpoints above the controls and clear of the journal. */
+.skip-connection {display:block;width:100%;padding:9px 0;color:#d7c39d;border-top:1px solid var(--line);font-size:11px;letter-spacing:2px;}
+.skip-connection span{font:8px monospace;margin-left:12px;opacity:.5;}
+.playing .scene-note{opacity:.55;}
+@media(max-width:650px){#quality{display:none;} .header-right{gap:3px;} #motion{font-size:10px;padding:5px;} #motion span{font-size:8px;margin-left:2px;}}
