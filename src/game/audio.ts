@@ -116,6 +116,11 @@ export class Soundscape {
     o.start();
     o.stop(c.currentTime + duration);
   }
+    pathSuccess(count: number) {
+    const attenuation = Math.pow(0.72, Math.max(0, count - 1));
+    const volume = 0.28 * attenuation;
+    this.tone(1750, 0.12, volume, "sawtooth");
+  }
   freeze() {
     this.tone(680, 1.8, 0.2, "triangle");
     setTimeout(() => this.tone(1020, 1.2, 0.08), 180);
