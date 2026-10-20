@@ -1,0 +1,14 @@
+{
+  "format": "permitted-world-web-deploy-v1",
+  "repository": "Maizi0410/xndf-great",
+  "run_id": "39423451307",
+  "run_attempt": "1",
+  "source_commit": "11b88b144e136918be477e5c5a0e70ebb51456ec",
+  "run_url": "https://github.com/Maizi0410/xndf-great/actions/runs/39423451307",
+  "state": "running",
+  "recorded_at": "2026-10-20T12:35:41.369Z",
+  "build_result": "pending",
+  "deploy_result": "pending",
+  "live_validation": "not-run",
+  "page_url": null
+}
