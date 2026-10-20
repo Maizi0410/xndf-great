@@ -5,10 +5,10 @@
   "run_attempt": "1",
   "source_commit": "11b88b144e136918be477e5c5a0e70ebb51456ec",
   "run_url": "https://github.com/Maizi0410/xndf-great/actions/runs/39423451307",
-  "state": "running",
-  "recorded_at": "2026-10-20T12:35:41.369Z",
-  "build_result": "pending",
-  "deploy_result": "pending",
-  "live_validation": "not-run",
+  "state": "completed",
+  "recorded_at": "2026-10-20T12:42:37.957Z",
+  "build_result": "success",
+  "deploy_result": "failure",
+  "live_validation": "skipped",
   "page_url": null
 }
