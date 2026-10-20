@@ -123,7 +123,7 @@ jobs:
               if (!musicInfo.ok) throw new Error('Missing music manifest');
               const music = await musicInfo.json();
               const mp3 = await fetch(new URL('audio/bgm_exploration.mp3', base));
-              if (!mp3.ok || !mp3.headers.get('content-type')?.includes('audio/mpeg')) throw new Error('Missing music or wrong MIME');
+              if (!mp3.ok || !/^audio\/(?:mpeg|mp3)(?:;|$)/i.test(mp3.headers.get('content-type') || '')) throw new Error('Missing music or wrong MIME');
               const musicHash = createHash('sha256').update(Buffer.from(await mp3.arrayBuffer())).digest('hex');
               if (musicHash !== music.playback_sha256) throw new Error('Live music checksum mismatch');
               console.log(`Verified live web entry: ${base}`);

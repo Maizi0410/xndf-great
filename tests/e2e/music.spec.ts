@@ -105,7 +105,7 @@ test("music loading failure is isolated from puzzle controls and crossing",async
 test("compressed music has correct bytes and audio MIME under the repository subpath",async({request})=>{
   const manifest=await request.get("audio/bgm_exploration.json");expect(manifest.ok()).toBe(true);
   const meta=await manifest.json();const mp3=await request.get("audio/bgm_exploration.mp3");
-  expect(mp3.ok()).toBe(true);expect(mp3.headers()["content-type"]).toContain("audio/mpeg");
+  expect(mp3.ok()).toBe(true);expect(mp3.headers()["content-type"]).toMatch(/^audio\/(?:mpeg|mp3)(?:;|$)/i);
   const body=await mp3.body();expect(body.length).toBe(3866924);
   expect(createHash("sha256").update(body).digest("hex")).toBe(meta.playback_sha256);
   expect(meta.bitrate_kbps).toBe(256);expect(meta.master_bytes).toBe(23189804);
