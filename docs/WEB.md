@@ -6,7 +6,7 @@
 
 目标站点：**https://guoanze550-commits.github.io/xndf-great/**
 
-V2.2 已上线：[运行 39095862471](https://github.com/guoanze550-commits/xndf-great/actions/runs/39095862471) 的 build、deploy、live validation 均通过，实际 HTTPS 页面、资源和 `build-info.json` 中的源提交已验证为 `5d80361`。云端仍无法直接连接 Pages 域名，此处依据 Actions 中真实运行的线上校验和 Git 状态回执。
+V2.2 已上线：[运行 39406157991](https://github.com/guoanze550-commits/xndf-great/actions/runs/39406157991) 的 build、deploy、live validation 均通过，实际 HTTPS 页面、资源和 `build-info.json` 中的源提交已验证为 `4d56508`。云端仍无法直接连接 Pages 域名，此处依据 Actions 中真实运行的线上校验和 Git 状态回执。
 
 ## 首次启用（仓库所有者只需做一次）
 
@@ -25,7 +25,7 @@ V2.2 已上线：[运行 39095862471](https://github.com/guoanze550-commits/xndf
 - 原桌面构建仍使用 `npm run build`、`dist/` 和 `./`，不受网页子路径影响。
 - 手势资源仍通过 `new URL('vision/', document.baseURI)` 加载。Pages 上模型地址为 `/xndf-great/vision/hand_landmarker.task`，WASM 地址位于 `/xndf-great/vision/wasm/`。
 - 模型随源码保存；全部 JS/WASM 变体从锁定 npm 依赖复制到网页产物，不依赖运行时 CDN。
-- 冰、建筑、人物、水、雪、贴图和声音使用现有程序化实现；字体是系统字体，没有需要修补的外部素材 URL。
+- 场景、贴图与原有音效保留程序化实现；新增探索音乐从 `/xndf-great/audio/bgm_exploration.mp3` 同源加载，WAV 母版不发布；字体仍为系统字体。详见 [背景音乐记录](BACKGROUND-MUSIC.md)。
 - 页面 CSP 保留，只允许同源资源与必要的 WASM 执行。
 - 工作流仅上传 `dist-web/`，不发布源代码、node_modules、Electron 二进制或构建缓存。
 

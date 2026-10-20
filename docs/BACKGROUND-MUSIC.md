@@ -34,16 +34,21 @@
 - 类型检查通过；单元测试 **47 项通过 / 6 文件**，其中新增音频专项 14 项。
 - 网页与桌面生产构建均通过；压缩音乐字节与源文件一致，两个产物都不含 WAV 母版。
 - 原有场景、镜头、角色、谜题、手势和三张参考图均未修改。
-- 浏览器最终回归 **8 项全部通过（6.8 分钟）**，含原4项与新增4项音频专项。实际等待120.78秒自然循环；用真实解码 buffer 跨边界离线渲染，检查双声道无长静音/异常采样跳变。此为数值验证，不是人耳试听结论。
+- 本地 Chromium 浏览器最终回归 **8 项全部通过（6.8 分钟）**，含原4项与新增4项音频专项。实际等待120.78秒自然循环；用真实解码 buffer 跨边界离线渲染，检查双声道无长静音/异常采样跳变。此为数值验证，不是人耳试听结论。
 - 完整五次鼠标跨越中 `starts=1`、活动音乐 source 为1；通关后停止，重开后从头播放。音量/静音保存、加载失败仍能完成第一段跨越均实际通过。
 - 模拟浏览器 visibility 通知，真实 AudioContext 暂停和原位置续播通过；不等同于真实 Safari / macOS 系统切后台验证。
 - Linux Electron 生产产物离线测试 **通过**：重载前屏蔽 HTTP(S)/WebSocket，本地 MP3 实际解码播放；五次跨越、单源连续播放与结尾停止成功，外部请求0，本地合成视频推理也通过。
-- 原生 Mac 音乐接入构建运行 `39404692221` 已成功，Artifact `12256654195` 已上传，原生离线音乐/完整通关验证通过，源提交为 `adb61b4`；精确交付记录将在网页最终成功后合并补充。
-- 首次 Pages 运行 `39404692207` 的构建与全部浏览器测试通过，部署到线上后最后校验失败：站点实际返回 `audio/mp3`，而新增校验只允许 `audio/mpeg`。实际文件 HTTP 200、SHA-256 与本地一致。修正校验接受这两种 MP3 类型并保留强校验，不修改游戏或音频文件；待新运行完成后补充最终结果。
+- 首次 Pages 运行 `39404692207` 的构建与全部浏览器测试通过，部署到线上后最后校验失败：站点实际返回 `audio/mp3`，而新增校验只允许 `audio/mpeg`。实际文件 HTTP 200、SHA-256 与本地一致。修正校验接受这两种 MP3 类型并保留强校验，不修改游戏或音频文件；最终成功记录见下文。
 - 首轮完整通关已观测到音乐结尾停止；测试随后误点结局遮罩下的声音按钮，主动中断并修正测试操作。不为测试更改结局遮罩或游戏交互，最终以重跑完整结果为准。
 
 待人工试听：默认音量与原音效比例；首尾乐句及交叉淡化；2 秒淡入与 3 秒结尾淡出；Mac Safari / Chrome 自动播放与切后台；课堂 Mac 离线播放、实际扬声器与耳机输出。
 
+
+## 发布验证
+
+- GitHub Pages **已成功**：[运行 39406157991](https://github.com/guoanze550-commits/xndf-great/actions/runs/39406157991) 的 build / deploy / live validation 全部通过；实际 HTTPS 版本为 `4d56508`，包含本次 MP3 的 HTTP/MIME/SHA-256 校验。
+- 原生 Apple Silicon Mac **已成功**：[运行 39404692221](https://github.com/guoanze550-commits/xndf-great/actions/runs/39404692221) 构建新的有声 `.app`，ASAR 中 MP3 与清单校验通过且不含 WAV 母版；打包应用屏蔽网络后的音乐解码、连续五次跨越和结尾停止通过。此为 CI 音频图/时钟验证，不是物理扬声器试听或课堂 Mac 首次安装。
+- [下载本次新 Artifact](https://github.com/guoanze550-commits/xndf-great/actions/runs/39404692221/artifacts/12256654195)；内层 ZIP：`The-Permitted-World-0.2.2-classroom-macOS-Apple-Silicon-arm64.zip`，SHA-256：`bb5e0d34856a1af26da0c44c712f69510091aee90c6e998b306e9aef003521ff`。登录 GitHub 下载外层 Artifact 后再解开内层 ZIP；保留30天。
 
 ## 本轮修改文件清单
 
@@ -54,4 +59,16 @@
 - `scripts/prepare-assets.mjs`、`scripts/verify-bundle.mjs`、`scripts/test-offline-electron.mjs`：资源校验、ASAR音乐完整性、实际离线播放验收。
 - `.github/workflows/deploy-pages.yml`：保留原流程，增加线上 MP3 MIME/校验值验证。
 - `tests/audio.test.ts`、`tests/e2e/music.spec.ts`、`tests/e2e/journey.spec.ts`：新增音频专项与连续通关集成断言。
-- `README.md`、`docs/CLASSROOM.md`、`docs/BACKGROUND-MUSIC.md`：入口、操作说明与本轮真实验收。
+- `README.md`、`docs/CLASSROOM.md`、`docs/BACKGROUND-MUSIC.md`、`docs/CLASSROOM-DOWNLOAD.md`、`docs/WEB.md`：入口、操作说明、当前产物链接与本轮真实验收。
+
+
+## 实际交付入口
+
+- 试玩：https://guoanze550-commits.github.io/xndf-great/
+- 游戏与音频源提交：[adb61b4](https://github.com/guoanze550-commits/xndf-great/commit/adb61b48a518e29dc048406d2edb6c470a3c5e56)。
+- 部署校验修复：[4d56508](https://github.com/guoanze550-commits/xndf-great/commit/4d565081e0149c84a910d3bfbba26a5bee3b227c)。
+- 原生 Mac 对应音乐源提交 `adb61b4`；网页最终部署对应 `4d56508`（仅增加 MIME 兼容校验修复及记录）。两提交之间 `src/`、`assets/audio/`、`public/audio/` 与 Electron 内容完全一致。后续文档提交不改变游戏与音频。
+- 本次已直接通过 HTTPS 读取实际页面版本及 MP3，HTTP 200、类型 `audio/mp3`、字节数和 SHA-256 与本地一致；另以 GitHub 官方 API 核对原生 Mac 运行成功、Artifact 存在且未过期。Pages 的最终 HTTPS 校验也由新 Actions 运行通过。
+- 交付链接更新涉及 `docs/CLASSROOM-DOWNLOAD.md`、`docs/WEB.md`、`README.md` 与本说明；不触发新的游戏构建。
+
+补充的公网 Chromium 冒烟尝试在打开页面时被云代理证书 `ERR_CERT_AUTHORITY_INVALID` 阻塞，未进入游戏，未计入通过数；未关闭 TLS 验证。上述8项为本地/CI Chromium 的真实回归，通过的公网验证为实际 HTTPS 资源/版本校验。Safari与课堂设备仍待实测。

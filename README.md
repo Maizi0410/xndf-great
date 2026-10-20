@@ -16,7 +16,7 @@
 
 ## 课堂 Mac ZIP
 
-[V2.2 Apple Silicon ZIP 下载](https://github.com/guoanze550-commits/xndf-great/actions/runs/39095862458/artifacts/12123699406)（[成功运行](https://github.com/guoanze550-commits/xndf-great/actions/runs/39095862458)）：本次 0.2.2 `.app`、签名/ZIP/资源校验，以及原生 Mac 屏蔽网络后的五段鼠标与镜头自动验证均已成功。登录 GitHub 下载并解开外层 Artifact ZIP，再解开内层课堂 ZIP；真实课堂设备首次安装和摄像头仍需验收。[下载说明与 SHA-256](docs/CLASSROOM-DOWNLOAD.md)。
+[V2.2 Apple Silicon ZIP 下载](https://github.com/guoanze550-commits/xndf-great/actions/runs/39404692221/artifacts/12256654195)（[成功运行](https://github.com/guoanze550-commits/xndf-great/actions/runs/39404692221)）：本次 0.2.2 `.app`、签名/ZIP/资源校验，以及原生 Mac 屏蔽网络后的音乐解码、五段鼠标与镜头自动验证均已成功。登录 GitHub 下载并解开外层 Artifact ZIP，再解开内层课堂 ZIP；真实课堂设备首次安装和摄像头仍需验收。[下载说明与 SHA-256](docs/CLASSROOM-DOWNLOAD.md)。
 
 保留 Pages、DMG 工作流，并继续使用独立 [Build classroom Mac ZIP](https://github.com/guoanze550-commits/xndf-great/actions/workflows/build-classroom-mac.yml)。相关 `main` 提交会自动构建，也可在 Actions 手动运行 `main`；成功后下载 `The-Permitted-World-Classroom-Mac-Apple-Silicon-arm64` Artifact。外层 Artifact ZIP 内含可再分发的 `.app` ZIP、校验值和自动验证报告。无需 Apple 开发者账户或 Secrets。
 
@@ -24,7 +24,7 @@ Apple Silicon Mac 本机构建：`npm ci`、`npx --no-install install-electron`�
 
 ## 在 Safari / Chrome 直接体验网页版
 
-无需等待 DMG。网页版入口为 **https://guoanze550-commits.github.io/xndf-great/**。V2.2 已由 [运行 39095862471](https://github.com/guoanze550-commits/xndf-great/actions/runs/39095862471) 部署，线上源提交 `5d80361`、脚本、样式、模型和 WASM 校验均通过。
+无需等待 DMG。网页版入口为 **https://guoanze550-commits.github.io/xndf-great/**。V2.2 已由 [运行 39406157991](https://github.com/guoanze550-commits/xndf-great/actions/runs/39406157991) 部署，线上源提交 `4d56508`、脚本、样式、模型和 WASM 校验均通过。
 
 继续使用独立的 [Deploy web game to GitHub Pages](https://github.com/guoanze550-commits/xndf-great/actions/workflows/deploy-pages.yml) 工作流，推送 `main` 后自动构建、验证和部署。当前仓库已成功部署；新建副本首次启用和排错步骤见 `docs/WEB.md`。
 

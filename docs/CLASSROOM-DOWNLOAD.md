@@ -1,4 +1,18 @@
-# V2.2 / 0.2.2 课堂 Mac ZIP（当前版本）
+# V2.2 背景音乐接入版（2026-10-20，当前课堂包）
+
+- [成功运行 39404692221](https://github.com/guoanze550-commits/xndf-great/actions/runs/39404692221)
+- [下载新 Artifact 12256654195](https://github.com/guoanze550-commits/xndf-great/actions/runs/39404692221/artifacts/12256654195)
+- 源提交：[`adb61b4`](https://github.com/guoanze550-commits/xndf-great/commit/adb61b48a518e29dc048406d2edb6c470a3c5e56)
+- 内层 ZIP：`The-Permitted-World-0.2.2-classroom-macOS-Apple-Silicon-arm64.zip`
+- SHA-256：`bb5e0d34856a1af26da0c44c712f69510091aee90c6e998b306e9aef003521ff`
+
+这是接入用户音乐后的新包，包版本仍为0.2.2，请按本运行号与源提交区分旧版。原生 ARM64 `.app`、签名、ASAR MP3/模型/WASM 与 ZIP 解压校验成功；打包应用屏蔽网络后的音乐解码、五次鼠标跨越、镜头和结尾音乐停止均通过。实际扬声器/耳机、循环听感、Safari与课堂 Mac 首次安装仍待实测。
+
+登录 GitHub 下载外层 Artifact ZIP，再解开其中的课堂 ZIP，运行 `.app`。Artifact 保留30天；过期可在原 **Build classroom Mac ZIP** 工作流选择 **Run workflow → main** 重新生成。完整结果与需要试听的项目见 [BACKGROUND-MUSIC.md](BACKGROUND-MUSIC.md)。
+
+---
+
+# V2.2 / 0.2.2 美术升级初次发布（历史记录）
 
 - [成功运行 39095862458](https://github.com/guoanze550-commits/xndf-great/actions/runs/39095862458)
 - [下载 Artifact 12123699406](https://github.com/guoanze550-commits/xndf-great/actions/runs/39095862458/artifacts/12123699406)
