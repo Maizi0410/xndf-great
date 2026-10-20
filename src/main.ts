@@ -7,7 +7,7 @@ import { Soundscape } from "./game/audio";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 app.innerHTML = `
 <canvas id="world" aria-label="雪中的三座石质岛屿，悬空石阶在固定等距视角中重合"></canvas><div class="vignette"></div>
-<header><a class="wordmark" href="#" aria-label="界限"><span class="seal">界</span><span>THE PERMITTED WORLD<small>一场关于可能性的寓言</small></span></a><div class="header-right"><span class="edition">SPATIAL STUDY — V2.2</span><button id="motion" class="icon-button" aria-pressed="false">镜头 <span>标准</span></button><button id="quality" class="icon-button">画质 <span>自动</span></button><button id="sound" class="icon-button" aria-label="关闭声音">声 <span>ON</span></button><button id="restart" class="icon-button" aria-label="重新开始">↺</button></div></header>
+<header><a class="wordmark" href="#" aria-label="界限"><span class="seal">界</span><span>THE PERMITTED WORLD<small>一场关于可能性的寓言</small></span></a><div class="header-right"><span class="edition">SPATIAL STUDY — V2.2</span><button id="motion" class="icon-button" aria-pressed="false">镜头 <span>标准</span></button><button id="quality" class="icon-button">画质 <span>自动</span></button><button id="sound" class="icon-button" aria-label="关闭声音">声 <span>ON</span></button><label class="music-volume" title="背景音乐音量"><span>乐</span><input id="music-volume" type="range" min="0" max="100" step="1" value="35" aria-label="背景音乐音量"></label><button id="restart" class="icon-button" aria-label="重新开始">↺</button></div></header>
 <div class="world-caption"><i></i><span>北纬 60° · 无名水域</span><span class="caption-rule"></span><span>WINTER, WITHOUT END</span></div>
 <section id="intro" class="intro"><div class="eyebrow">AN EXPERIMENT IN BOUNDARIES</div><h1>界<span>限</span><sup>02</sup></h1><p class="intro-english">THE PERMITTED WORLD</p><div class="short-line"></div><p class="intro-copy">世界并非没有道路。<br>只是有些可能，尚未被允许。</p><button id="begin" class="primary">进入界限 <span>↗</span></button><p class="start-note">拖动以改变秩序 · 点击以允许前行</p><div class="intro-index"><span>01 / 01</span><span>单场景空间解谜 · 约 5–8 分钟</span></div></section>
 <aside id="journal" class="journal hidden"><div class="eyebrow">THE SHAPE OF PERMISSION</div><h2 id="chapter">借来的高度</h2><p id="narrative">不是把两岸拉近。<br>试着让断阶在眼前重合。</p><div class="journey"><span data-platform="A" class="current">I</span><i></i><span data-platform="L">西</span><i></i><span data-platform="B">II</span><i></i><span data-platform="U">东</span><i></i><span data-platform="B2">上</span><i></i><span data-platform="C">III</span></div><div class="location"><span id="location">起点</span><span id="phase">等待许可</span></div></aside>
@@ -73,13 +73,13 @@ const hands = new HandInput(
   confirm,
   () => rules.angle,
 );
-function begin() {
+function begin(restartMusic = false) {
   started = true;
   $("intro").classList.add("hidden");
   $("journal").classList.remove("hidden");
   $("controls").classList.remove("hidden");
   document.body.classList.add("playing");
-  void audio.start().catch(() => toast("声音暂不可用，不影响游玩。"));
+  void audio.start(restartMusic).catch(() => toast("声音暂不可用，不影响游玩。"));
 }
 function reset() {
   hands.stop();
@@ -93,21 +93,29 @@ function reset() {
   previousPhase = "";
   previousChanges = 0;
   $("ending").classList.add("hidden");
-  begin();
+  begin(true);
 }
-$("begin").onclick = begin;
+$("begin").onclick = () => begin();
 $("restart").onclick = reset;
 $("again").onclick = reset;
 $("confirm").onclick = confirm;
 $<HTMLInputElement>("rotation").onchange = () => rules.snap();
 $<HTMLInputElement>("rotation").oninput = (e) =>
   rotate(Number((e.target as HTMLInputElement).value));
-$("sound").onclick = () => {
-  const enabled = audio.toggle();
-  $("sound").innerHTML = `声 <span>${enabled ? "ON" : "OFF"}</span>`;
-  $("sound").setAttribute("aria-label", enabled ? "关闭声音" : "开启声音");
-  if (started && enabled) void audio.start().catch(() => {});
+function syncSoundControls() {
+  $("sound").innerHTML = `声 <span>${audio.enabled ? "ON" : "OFF"}</span>`;
+  $("sound").setAttribute("aria-label", audio.enabled ? "关闭声音" : "开启声音");
+  $("sound").setAttribute("aria-pressed", String(!audio.enabled));
+  $<HTMLInputElement>("music-volume").value = String(Math.round(audio.volume * 100));
+}
+syncSoundControls();
+$("sound").onclick = () => { audio.toggle(); syncSoundControls(); };
+$<HTMLInputElement>("music-volume").oninput = e => {
+  audio.setVolume(Number((e.target as HTMLInputElement).value) / 100);
 };
+document.addEventListener("visibilitychange", () => audio.setPaused(document.hidden));
+window.addEventListener("pagehide", () => audio.setPaused(true));
+window.addEventListener("pageshow", () => audio.setPaused(document.hidden));
 let drag: { x: number; angle: number; id: number } | null = null;
 $("world").onpointerdown = (e) => {
   if (!started || rules.locked) return;
@@ -194,6 +202,8 @@ function frame(now: number) {
   const elapsed = Math.min((now - previous) / 1000, 0.5);
   const dt = Math.min(elapsed, 0.1);
   previous = now;
+  // Read-only music status for resource/lifecycle acceptance; no playback controls.
+  $("app").dataset.music = JSON.stringify(audio.music?.snapshot() ?? {state:"idle", activeSources:0, volume:audio.volume, muted:!audio.enabled});
   if (document.hidden) return;
   if(started) hands.update(now);
   world.prepareCamera(dt,rules);

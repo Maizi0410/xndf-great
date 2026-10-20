@@ -119,6 +119,13 @@ jobs:
               if (hash !== '94cae88157602cec45e48fe0c572b418a9641a9aae977ffd71dddbce167201a1') throw new Error('Deployed model checksum mismatch');
               const wasm = await fetch(new URL('vision/wasm/vision_wasm_internal.wasm', base));
               if (!wasm.ok || !wasm.headers.get('content-type')?.includes('application/wasm')) throw new Error('Missing WASM or wrong MIME type');
+              const musicInfo = await fetch(new URL('audio/bgm_exploration.json', base));
+              if (!musicInfo.ok) throw new Error('Missing music manifest');
+              const music = await musicInfo.json();
+              const mp3 = await fetch(new URL('audio/bgm_exploration.mp3', base));
+              if (!mp3.ok || !mp3.headers.get('content-type')?.includes('audio/mpeg')) throw new Error('Missing music or wrong MIME');
+              const musicHash = createHash('sha256').update(Buffer.from(await mp3.arrayBuffer())).digest('hex');
+              if (musicHash !== music.playback_sha256) throw new Error('Live music checksum mismatch');
               console.log(`Verified live web entry: ${base}`);
               process.exit(0);
             } catch (error) {

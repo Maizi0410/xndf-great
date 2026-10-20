@@ -66,6 +66,20 @@ try {
   await expect(window.locator("#fatal")).toBeHidden();
   await window.locator("#begin").click();
   await expect(window.locator("#app")).toHaveAttribute("data-platform", "A");
+  const musicStatus = () => window.locator("#app").getAttribute("data-music").then(value => JSON.parse(value ?? "{}"));
+  await expect.poll(async () => (await musicStatus()).state, {timeout:30000}).toBe("playing");
+  const musicBefore = await musicStatus();
+  expect(musicBefore.activeSources).toBe(1);
+  expect(musicBefore.duration).toBeGreaterThan(120);
+  expect(musicBefore.duration).toBeLessThan(121);
+  expect(musicBefore.starts).toBe(1);
+  const packagedMusic = await window.evaluate(async () => {
+    const response = await fetch(new URL("audio/bgm_exploration.mp3", document.baseURI));
+    return {ok:response.ok, bytes:(await response.arrayBuffer()).byteLength};
+  });
+  expect(packagedMusic.ok).toBe(true);
+  expect(packagedMusic.bytes).toBe(3866924);
+
   await window.evaluate(() => {
     const c = document.createElement("canvas");
     c.width = 640;
@@ -97,6 +111,8 @@ try {
   }
   for(const [angle,node] of [[-56,"L"],[34,"B"],[52,"U"],[-38,"B2"],[-22,"C"]]) {
     await selectRoad(angle);
+    expect((await musicStatus()).activeSources).toBe(1);
+    expect((await musicStatus()).starts).toBe(1);
     await expect(window.locator("#app")).toHaveAttribute("data-camera-mode","CONNECTION_HOLD");
     await window.locator("#confirm").click();
     await expect(window.locator("#rotation")).toBeDisabled();
@@ -105,6 +121,8 @@ try {
   }
   await expect(window.locator("#ending")).toBeVisible({timeout:20000});
   await expect(window.locator("#app")).toHaveAttribute("data-crossings","5");
+  await expect.poll(async () => (await musicStatus()).state, {timeout:10000}).toBe("ended");
+  expect((await musicStatus()).activeSources).toBe(0);
   const blocked = await application.evaluate(
     () => globalThis.classroomBlockedRequests,
   );
@@ -123,6 +141,7 @@ try {
     network: "HTTP, HTTPS and WebSocket blocked before page reload",
     externalRequests: blocked.length,
     mouseJourney: "A→L→B→U→B2→C, five projection crossings, confirmation holds, cinematic pullbacks and ending passed",
+    explorationMusic: "local compressed track decoded, single source across five crossings, ending faded and stopped; no acoustic/device verification",
     localModelInference: "synthetic video passed",
     physicalCamera: "not tested",
     physicalMac: "not tested by this automated check",

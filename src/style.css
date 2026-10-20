@@ -795,3 +795,8 @@ video {
 .skip-connection span{font:8px monospace;margin-left:12px;opacity:.5;}
 .playing .scene-note{opacity:.55;}
 @media(max-width:650px){#quality{display:none;} .header-right{gap:3px;} #motion{font-size:10px;padding:5px;} #motion span{font-size:8px;margin-left:2px;}}
+
+/* Audio settings only; existing scene and controls retain their layout. */
+.music-volume { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); }
+.music-volume input { width: 62px; height: 16px; accent-color: var(--warm); cursor: pointer; }
+@media (max-width: 650px) { .music-volume { gap: 3px; } .music-volume input { width: 36px; } }

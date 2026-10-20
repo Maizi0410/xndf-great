@@ -29,6 +29,9 @@ test("mouse completes the entire offline world, even after camera denial", async
   await page.getByRole("button", { name: "进入界限" }).click();
   await expect(page.locator("#app")).toHaveAttribute("data-platform", "A");
   await expect(page.locator("#confirm")).toBeDisabled();
+  const music = async () => JSON.parse((await page.locator("#app").getAttribute("data-music")) ?? "{}");
+  await expect.poll(async () => (await music()).state, {timeout:20000}).toBe("playing");
+
   await page.evaluate(() => {
     Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
       value: () =>
@@ -72,6 +75,8 @@ test("mouse completes the entire offline world, even after camera denial", async
     await dragTo(step.angle,step.mechanism);
     await expect(page.locator("#confirm")).toBeEnabled({timeout:25000});
     await expect(page.locator("#app")).toHaveAttribute("data-route",step.edge);
+    expect((await music()).starts).toBe(1);
+    expect((await music()).activeSources).toBe(1);
     await expect(page.locator("#app")).toHaveAttribute("data-camera-mode","CONNECTION_HOLD");
     await expect.poll(async()=>Number(await page.locator("#app").getAttribute("data-camera-zoom"))).toBeGreaterThan(1.3);
     const focusedZoom=Number(await page.locator("#app").getAttribute("data-camera-zoom"));
@@ -103,7 +108,11 @@ test("mouse completes the entire offline world, even after camera denial", async
   await expect(page.locator("#ending")).toBeVisible({ timeout: 40000 });
   await expect(page.locator("#app")).toHaveAttribute("data-platform", "C");
   await page.screenshot({ path: "test-results/04-ending.png" });
+  await expect.poll(async () => (await music()).state, {timeout:10000}).toBe("ended");
+  expect((await music()).activeSources).toBe(0);
   await page.locator("#again").click();
+  await expect.poll(async () => (await music()).starts).toBe(2);
+  expect((await music()).position).toBeLessThan(4);
   await expect(page.locator("#app")).toHaveAttribute("data-platform", "A");
   await expect(page.locator("#app")).toHaveAttribute("data-route", "none");
   expect(errors).toEqual([]);

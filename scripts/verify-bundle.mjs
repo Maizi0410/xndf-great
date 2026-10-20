@@ -18,6 +18,8 @@ export async function verifyBundle(
     entries = new Set(asar.listPackage(archive));
   const required = [
     "dist/index.html",
+    "dist/audio/bgm_exploration.mp3",
+    "dist/audio/bgm_exploration.json",
     "dist/vision/manifest.json",
     "dist/vision/hand_landmarker.task",
     "electron/main.cjs",
@@ -29,6 +31,10 @@ export async function verifyBundle(
   for (const name of required)
     if (!entries.has("/" + name))
       throw new Error("Missing ASAR resource: " + name);
+  const music = JSON.parse(asar.extractFile(archive, "dist/audio/bgm_exploration.json").toString());
+  const song = asar.extractFile(archive, "dist/audio/bgm_exploration.mp3");
+  if (createHash("sha256").update(song).digest("hex") !== music.playback_sha256) throw new Error("Packaged music SHA-256 mismatch");
+  if ([...entries].some(name => /bgm_exploration\.wav$/i.test(name))) throw new Error("WAV master must not be bundled");
   const model = asar.extractFile(archive, "dist/vision/hand_landmarker.task");
   if (
     createHash("sha256").update(model).digest("hex") !==
@@ -52,6 +58,8 @@ export async function verifyBundle(
     architecture: "arm64",
     offlineResources: "passed",
     modelSHA256: "passed",
+    explorationMusicSHA256: "passed",
+    wavMasterBundled: false,
     htmlDependencies: "passed",
     cameraDescription: "present",
     asarEntries: entries.size,

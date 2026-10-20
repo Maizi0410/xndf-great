@@ -66,3 +66,10 @@ console.log("Local WASM, model SHA-256 and icon verified.");
 const pkg = JSON.parse(await readFile("package.json", "utf8"));
 const source = process.env.GITHUB_SHA || execFileSync("git", ["rev-parse", "HEAD"], {encoding:"utf8"}).trim();
 await writeFile("public/build-info.json", JSON.stringify({version:pkg.version,source_commit:source})+"\n");
+
+// The WAV is an archival master outside public/, never a web/app payload.
+const music = JSON.parse(await readFile("public/audio/bgm_exploration.json", "utf8"));
+for (const [file, checksum] of [[music.master, music.master_sha256], ["public/audio/" + music.playback, music.playback_sha256]]) {
+  if (createHash("sha256").update(await readFile(file)).digest("hex") !== checksum) throw new Error("Music checksum mismatch: " + file);
+}
+console.log("Original WAV master and compressed exploration music verified.");

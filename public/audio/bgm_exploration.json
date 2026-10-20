@@ -1,0 +1,17 @@
+{
+  "source": "music_001.WAV (user supplied)",
+  "master": "assets/audio/bgm_exploration.wav",
+  "master_sha256": "0b40cec5ec6d933af3d5efb11ce2e8aab3f9d67f24bf552bf66439cba2c812bc",
+  "master_bytes": 23189804,
+  "sample_rate": 48000,
+  "channels": 2,
+  "pcm_bits": 16,
+  "duration_seconds": 120.78,
+  "playback": "bgm_exploration.mp3",
+  "playback_sha256": "19ab6da9b48a82e70ab734a86f61ab604dd3270a480b1aa1e587ad715327cffa",
+  "playback_bytes": 3866924,
+  "codec": "MP3 / libmp3lame",
+  "bitrate_kbps": 256,
+  "crossfade_seconds": 0.75,
+  "loop_processing": "Decoded playback tail blends with head; initial intro preserved; single looping AudioBufferSource, loopStart=0.75s"
+}
