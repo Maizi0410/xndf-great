@@ -26,6 +26,7 @@ let started = false,
   world: WinterWorld,
   previousPhase = "",
   previousChanges = 0,
+  previousTraversed = 0,
   finished = false,
   previousNode = rules.platform,
   previousAngle = rules.angle;
@@ -92,6 +93,7 @@ function reset() {
   previousAngle = rules.angle;
   previousPhase = "";
   previousChanges = 0;
+  previousTraversed = 0;
   $("ending").classList.add("hidden");
   begin(true);
 }
@@ -215,6 +217,13 @@ function frame(now: number) {
   }
   world.update(dt, rules, started);
   if (!started) return;
+  if (rules.traversed.length !== previousTraversed) {
+  previousTraversed = rules.traversed.length;
+
+  if (rules.platform !== "C") {
+    audio.pathSuccess(previousTraversed);
+  }
+}
   const slider = $<HTMLInputElement>("rotation");
   slider.disabled = rules.locked;
   if (document.activeElement !== slider) slider.value = String(rules.angle);
